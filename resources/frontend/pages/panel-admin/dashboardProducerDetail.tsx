@@ -22,10 +22,7 @@ interface Farm {
     harvests: Array<{
         id: string;
         year: string;
-        crops: Array<{
-            id: string;
-            name: string;
-        }>;
+        name: string; // Nome da plantação/cultura
     }>;
 }
 
@@ -62,7 +59,7 @@ export default function DashboardProducerDetail({
         vegetation_area: '',
         harvests: [] as Array<{
             year: string;
-            crops: string[];
+            name: string; // Nome da plantação/cultura
         }>
     });
 
@@ -316,17 +313,10 @@ export default function DashboardProducerDetail({
                                                                 <p className="mb-1 font-medium text-gray-800">
                                                                     Safra {harvest.year}
                                                                 </p>
-                                                                {harvest.crops.length > 0 && (
-                                                                    <div className="flex flex-wrap gap-1">
-                                                                        {harvest.crops.map((crop, idx) => (
-                                                                            <span
-                                                                                key={idx}
-                                                                                className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
-                                                                            >
-                                                                                {crop.name}
-                                                                            </span>
-                                                                        ))}
-                                                                    </div>
+                                                                {harvest.name && (
+                                                                    <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded inline-block">
+                                                                        {harvest.name}
+                                                                    </span>
                                                                 )}
                                                             </div>
                                                         ))}

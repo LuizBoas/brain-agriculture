@@ -11,21 +11,19 @@ class HarvestController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Harvest::with(['farm.producer', 'crops']);
+        $query = Harvest::with(['farm.producer']);
 
-        // Busca por ano da safra, nome da fazenda ou nome do produtor
+        // Busca por ano da safra, nome da plantação/cultura, nome da fazenda ou nome do produtor
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('year', 'like', "%{$search}%")
+                  ->orWhere('name', 'like', "%{$search}%") // Buscar pelo nome da plantação/cultura
                   ->orWhereHas('farm', function($farmQuery) use ($search) {
                       $farmQuery->where('name', 'like', "%{$search}%")
                                 ->orWhereHas('producer', function($producerQuery) use ($search) {
                                     $producerQuery->where('name', 'like', "%{$search}%");
                                 });
-                  })
-                  ->orWhereHas('crops', function($cropQuery) use ($search) {
-                      $cropQuery->where('name', 'like', "%{$search}%");
                   });
             });
         }

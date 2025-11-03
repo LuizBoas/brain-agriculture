@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Producer;
 use App\Models\Farm;
-use App\Models\Crop;
+use App\Models\Harvest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -30,8 +30,9 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Gráfico por Cultura
-        $byCrop = Crop::select('name', DB::raw('COUNT(*) as count'))
+        // Gráfico por Cultura (agora vem de harvests.name)
+        $byCrop = Harvest::select('name', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('name')
             ->groupBy('name')
             ->orderBy('count', 'desc')
             ->get()

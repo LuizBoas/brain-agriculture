@@ -7,14 +7,10 @@ import SearchInput from '@/components/admin-panel/search-input';
 import { Container } from '@/components/common/container';
 import { router } from '@inertiajs/react';
 
-interface Crop {
-    id: string;
-    name: string;
-}
-
 interface Harvest {
     id: string;
     year: string;
+    name: string; // Nome da plantação/cultura
     farm: {
         id: string;
         name: string;
@@ -25,7 +21,6 @@ interface Harvest {
             document_type: string;
         };
     };
-    crops: Crop[];
 }
 
 interface HarvestPagination {
@@ -78,7 +73,7 @@ export default function DashboardHarvest({
         { title: 'Ano da Safra', field: 'year', sortable: false },
         { title: 'Fazenda', field: 'farm', sortable: false },
         { title: 'Produtor', field: 'producer', sortable: false },
-        { title: 'Culturas', field: 'crops', sortable: false }
+        { title: 'Plantação/Cultura', field: 'name', sortable: false }
     ];
 
     const formatDocument = (document: string, type: string) => {
@@ -142,19 +137,12 @@ export default function DashboardHarvest({
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">
-                                            {harvest.crops && harvest.crops.length > 0 ? (
-                                                <div className="flex flex-wrap gap-1">
-                                                    {harvest.crops.map((crop) => (
-                                                        <span
-                                                            key={crop.id}
-                                                            className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
-                                                        >
-                                                            {crop.name}
-                                                        </span>
-                                                    ))}
-                                                </div>
+                                            {harvest.name ? (
+                                                <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded inline-block">
+                                                    {harvest.name}
+                                                </span>
                                             ) : (
-                                                <span className="text-gray-400 italic">Sem culturas</span>
+                                                <span className="text-gray-400 italic">Sem cultura</span>
                                             )}
                                         </td>
                                     </tr>

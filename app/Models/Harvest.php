@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+// use Illuminate\Database\Eloquent\Relations\HasMany; // Não usado mais
 use Malico\LaravelNanoid\HasNanoids;
 
 class Harvest extends Model
@@ -18,6 +18,7 @@ class Harvest extends Model
     protected $fillable = [
         'farm_id',
         'year',
+        'name', // Nome da plantação/cultura
     ];
 
     public function farm(): BelongsTo
@@ -25,8 +26,4 @@ class Harvest extends Model
         return $this->belongsTo(Farm::class, 'farm_id', 'id');
     }
 
-    public function crops(): HasMany
-    {
-        return $this->hasMany(Crop::class, 'harvest_id', 'id');
-    }
 }

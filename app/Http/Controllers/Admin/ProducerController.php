@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Producer;
 use App\Models\Farm;
-use App\Models\Crop;
+// use App\Models\Crop; // Removido - não usado mais (nome da cultura agora está em harvests.name)
 use App\Models\Harvest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -49,8 +49,7 @@ class ProducerController extends Controller
             'farms.*.vegetation_area' => 'required_with:farms|numeric|min:0',
             'farms.*.harvests' => 'nullable|array',
             'farms.*.harvests.*.year' => 'required_with:farms.*.harvests|string',
-            'farms.*.harvests.*.crops' => 'nullable|array',
-            'farms.*.harvests.*.crops.*' => 'nullable|string|max:255',
+            'farms.*.harvests.*.name' => 'required_with:farms.*.harvests|string|max:255', // Nome da plantação/cultura
         ]);
 
         // Validar CPF/CNPJ
@@ -119,30 +118,22 @@ class ProducerController extends Controller
                     'vegetation_area' => $vegetationArea,
                 ]);
 
-                // Criar safras e culturas
+                // Criar safras (agora com nome direto na tabela)
                 if (isset($farmData['harvests']) && is_array($farmData['harvests']) && count($farmData['harvests']) > 0) {
                     foreach ($farmData['harvests'] as $harvestData) {
-                        // Validar que a safra tem ano
+                        // Validar que a safra tem ano e nome
                         if (empty($harvestData['year']) || trim($harvestData['year']) === '') {
                             continue; // Pula safras sem ano
                         }
+                        if (empty($harvestData['name']) || trim($harvestData['name']) === '') {
+                            continue; // Pula safras sem nome
+                        }
 
-                        $harvest = Harvest::create([
+                        Harvest::create([
                             'farm_id' => $farm->id,
                             'year' => trim($harvestData['year']),
+                            'name' => trim($harvestData['name']), // Nome da plantação/cultura
                         ]);
-
-                        // Criar culturas
-                        if (isset($harvestData['crops']) && is_array($harvestData['crops']) && count($harvestData['crops']) > 0) {
-                            foreach ($harvestData['crops'] as $cropName) {
-                                if (!empty($cropName) && trim($cropName) !== '') {
-                                    Crop::create([
-                                        'harvest_id' => $harvest->id,
-                                        'name' => trim($cropName),
-                                    ]);
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -153,34 +144,37 @@ class ProducerController extends Controller
 
     public function edit($id)
     {
-        $producer = Producer::with(['farms.harvests.crops'])->findOrFail($id);
+        $producer = Producer::with(['farms.harvests'])->findOrFail($id);
         
         // Formatar os dados para o frontend
         $farmsData = $producer->farms->map(function($farm) {
+            // Mapear safras com nome e ano (sem crops)
+            $harvestsData = $farm->harvests->map(function($harvest) {
+                return [
+                    'id' => $harvest->id,
+                    'year' => (string)$harvest->year,
+                    'name' => $harvest->name ?? '' // Nome da plantação/cultura
+                ];
+            })->toArray();
+            
             return [
                 'id' => $farm->id,
-                'name' => $farm->name,
-                'city' => $farm->city,
-                'state' => $farm->state,
-                'total_area' => (string)$farm->total_area,
-                'arable_area' => (string)$farm->arable_area,
-                'vegetation_area' => (string)$farm->vegetation_area,
-                'harvests' => $farm->harvests->map(function($harvest) {
-                    return [
-                        'id' => $harvest->id,
-                        'year' => $harvest->year,
-                        'crops' => $harvest->crops->pluck('name')->toArray()
-                    ];
-                })->toArray()
+                'name' => $farm->name ?? '',
+                'city' => $farm->city ?? '',
+                'state' => $farm->state ?? '',
+                'total_area' => $farm->total_area ? (string)$farm->total_area : '0',
+                'arable_area' => $farm->arable_area ? (string)$farm->arable_area : '0',
+                'vegetation_area' => $farm->vegetation_area ? (string)$farm->vegetation_area : '0',
+                'harvests' => $harvestsData
             ];
         })->toArray();
 
         return response()->json([
             'producer' => [
                 'id' => $producer->id,
-                'document' => $producer->document,
-                'document_type' => $producer->document_type,
-                'name' => $producer->name,
+                'document' => $producer->document ?? '',
+                'document_type' => $producer->document_type ?? 'CPF',
+                'name' => $producer->name ?? '',
             ],
             'farms' => $farmsData
         ]);
@@ -203,8 +197,7 @@ class ProducerController extends Controller
             'farms.*.vegetation_area' => 'required_with:farms|numeric|min:0',
             'farms.*.harvests' => 'nullable|array',
             'farms.*.harvests.*.year' => 'required_with:farms.*.harvests|string',
-            'farms.*.harvests.*.crops' => 'nullable|array',
-            'farms.*.harvests.*.crops.*' => 'nullable|string|max:255',
+            'farms.*.harvests.*.name' => 'required_with:farms.*.harvests|string|max:255', // Nome da plantação/cultura
         ]);
 
         $document = preg_replace('/[^0-9]/', '', $request->document);
@@ -240,19 +233,21 @@ class ProducerController extends Controller
         // Por enquanto, vamos deletar todas e recriar (simplificado)
         // Em produção, seria melhor fazer update/delete/insert seletivo
         foreach ($producer->farms as $farm) {
-            foreach ($farm->harvests as $harvest) {
-                $harvest->crops()->delete();
-            }
             $farm->harvests()->delete();
         }
         $producer->farms()->delete();
 
         if ($request->has('farms') && is_array($request->farms)) {
             foreach ($request->farms as $farmIndex => $farmData) {
+                // Validar que a fazenda tem dados mínimos
+                if (empty($farmData['name']) || empty($farmData['city']) || empty($farmData['state'])) {
+                    continue; // Pula fazendas incompletas
+                }
+
                 // Validar soma das áreas
-                $totalArea = isset($farmData['total_area']) ? (float) $farmData['total_area'] : 0;
-                $arableArea = isset($farmData['arable_area']) ? (float) $farmData['arable_area'] : 0;
-                $vegetationArea = isset($farmData['vegetation_area']) ? (float) $farmData['vegetation_area'] : 0;
+                $totalArea = isset($farmData['total_area']) && $farmData['total_area'] !== '' ? (float) $farmData['total_area'] : 0;
+                $arableArea = isset($farmData['arable_area']) && $farmData['arable_area'] !== '' ? (float) $farmData['arable_area'] : 0;
+                $vegetationArea = isset($farmData['vegetation_area']) && $farmData['vegetation_area'] !== '' ? (float) $farmData['vegetation_area'] : 0;
 
                 if ($totalArea > 0 && ($arableArea + $vegetationArea) > $totalArea) {
                     return back()->withErrors(["farms.{$farmIndex}.total_area" => 'A soma das áreas agricultável e vegetação não pode ultrapassar a área total']);
@@ -260,33 +255,30 @@ class ProducerController extends Controller
 
                 $farm = Farm::create([
                     'producer_id' => $producer->id,
-                    'name' => $farmData['name'],
-                    'city' => $farmData['city'],
-                    'state' => $farmData['state'],
+                    'name' => trim($farmData['name']),
+                    'city' => trim($farmData['city']),
+                    'state' => trim($farmData['state']),
                     'total_area' => $totalArea,
                     'arable_area' => $arableArea,
                     'vegetation_area' => $vegetationArea,
                 ]);
 
-                // Criar safras e culturas
-                if (isset($farmData['harvests']) && is_array($farmData['harvests'])) {
+                // Criar safras (agora com nome direto na tabela)
+                if (isset($farmData['harvests']) && is_array($farmData['harvests']) && count($farmData['harvests']) > 0) {
                     foreach ($farmData['harvests'] as $harvestData) {
-                        $harvest = Harvest::create([
-                            'farm_id' => $farm->id,
-                            'year' => $harvestData['year'],
-                        ]);
-
-                        // Criar culturas
-                        if (isset($harvestData['crops']) && is_array($harvestData['crops'])) {
-                            foreach ($harvestData['crops'] as $cropName) {
-                                if (trim($cropName) !== '') {
-                                    Crop::create([
-                                        'harvest_id' => $harvest->id,
-                                        'name' => trim($cropName),
-                                    ]);
-                                }
-                            }
+                        // Validar que a safra tem ano e nome
+                        if (empty($harvestData['year']) || trim($harvestData['year']) === '') {
+                            continue; // Pula safras sem ano
                         }
+                        if (empty($harvestData['name']) || trim($harvestData['name']) === '') {
+                            continue; // Pula safras sem nome
+                        }
+
+                        Harvest::create([
+                            'farm_id' => $farm->id,
+                            'year' => trim($harvestData['year']),
+                            'name' => trim($harvestData['name']), // Nome da plantação/cultura
+                        ]);
                     }
                 }
             }
@@ -299,11 +291,8 @@ class ProducerController extends Controller
     {
         $producer = Producer::findOrFail($id);
         
-        // Deletar em cascata (farms, harvests, crops)
+        // Deletar em cascata (farms, harvests)
         foreach ($producer->farms as $farm) {
-            foreach ($farm->harvests as $harvest) {
-                $harvest->crops()->delete();
-            }
             $farm->harvests()->delete();
         }
         $producer->farms()->delete();
@@ -314,7 +303,7 @@ class ProducerController extends Controller
 
     public function show($id)
     {
-        $producer = Producer::with(['farms.harvests.crops', 'creator'])->findOrFail($id);
+        $producer = Producer::with(['farms.harvests', 'creator'])->findOrFail($id);
         
         return Inertia::render('panel-admin/dashboardProducerDetail', [
             'producer' => $producer,

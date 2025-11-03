@@ -41,7 +41,7 @@ interface FarmFormData {
     vegetation_area: string;
     harvests: Array<{
         year: string;
-        crops: string[];
+        name: string; // Nome da plantação/cultura
     }>;
 }
 
@@ -94,37 +94,66 @@ export default function DashboardProducer({
 
     const [onDeleteAction, setOnDeleteAction] = useState<() => void>(() => () => {});
 
+    const [loadingProducerData, setLoadingProducerData] = useState(false);
+
     const handleEditProducer = async (producer: Producer) => {
         setSelectedProducer(producer);
+        setLoadingProducerData(true);
         setIsEditModalOpen(true);
         
         // Carregar dados completos do produtor
         try {
-            const response = await fetch(route('producer.edit.form', { id: producer.id }));
+            const response = await fetch(route('admin.producer.edit.form', { id: producer.id }), {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const result = await response.json();
             
+            console.log('Dados carregados do backend:', result);
+            
+            // Preencher dados do produtor
             setData({
-                document: result.producer.document,
-                document_type: result.producer.document_type,
-                name: result.producer.name,
+                document: result.producer?.document || producer.document,
+                document_type: result.producer?.document_type || producer.document_type,
+                name: result.producer?.name || producer.name,
                 farms: []
             });
             
-            // Carregar fazendas
-            if (result.farms && result.farms.length > 0) {
-                setFarms(result.farms.map((farm: any) => ({
-                    name: farm.name,
-                    city: farm.city,
-                    state: farm.state,
-                    total_area: farm.total_area,
-                    arable_area: farm.arable_area,
-                    vegetation_area: farm.vegetation_area,
-                    harvests: farm.harvests.map((harvest: any) => ({
-                        year: harvest.year,
-                        crops: harvest.crops || []
-                    }))
-                })));
+            // Carregar fazendas com suas safras (agora com nome direto)
+            if (result.farms && Array.isArray(result.farms) && result.farms.length > 0) {
+                const farmsData = result.farms.map((farm: any) => {
+                    // Garantir que as safras sejam um array válido
+                    const harvestsData = (farm.harvests && Array.isArray(farm.harvests)) 
+                        ? farm.harvests.map((harvest: any) => ({
+                            year: harvest.year || '',
+                            name: harvest.name || '' // Nome da plantação/cultura
+                        }))
+                        : [];
+                    
+                    return {
+                        name: farm.name || '',
+                        city: farm.city || '',
+                        state: farm.state || '',
+                        total_area: farm.total_area?.toString() || '0',
+                        arable_area: farm.arable_area?.toString() || '0',
+                        vegetation_area: farm.vegetation_area?.toString() || '0',
+                        harvests: harvestsData
+                    };
+                });
+                
+                console.log('Fazendas processadas:', farmsData);
+                setFarms(farmsData);
             } else {
+                // Se não há fazendas, iniciar com uma fazenda vazia
+                console.log('Nenhuma fazenda encontrada, inicializando com fazenda vazia');
                 setFarms([{
                     name: '',
                     city: '',
@@ -153,6 +182,8 @@ export default function DashboardProducer({
                 vegetation_area: '',
                 harvests: []
             }]);
+        } finally {
+            setLoadingProducerData(false);
         }
     };
 
@@ -180,7 +211,7 @@ export default function DashboardProducer({
 
     const addHarvest = (farmIndex: number) => {
         const newFarms = [...farms];
-        newFarms[farmIndex].harvests.push({ year: '', crops: [] });
+        newFarms[farmIndex].harvests.push({ year: '', name: '' });
         setFarms(newFarms);
     };
 
@@ -196,19 +227,9 @@ export default function DashboardProducer({
         setFarms(newFarms);
     };
 
-    const addCrop = (farmIndex: number, harvestIndex: number, cropName: string) => {
-        if (!cropName.trim()) return;
+    const updateHarvestName = (farmIndex: number, harvestIndex: number, name: string) => {
         const newFarms = [...farms];
-        if (!newFarms[farmIndex].harvests[harvestIndex].crops) {
-            newFarms[farmIndex].harvests[harvestIndex].crops = [];
-        }
-        newFarms[farmIndex].harvests[harvestIndex].crops.push(cropName);
-        setFarms(newFarms);
-    };
-
-    const removeCrop = (farmIndex: number, harvestIndex: number, cropIndex: number) => {
-        const newFarms = [...farms];
-        newFarms[farmIndex].harvests[harvestIndex].crops.splice(cropIndex, 1);
+        newFarms[farmIndex].harvests[harvestIndex].name = name;
         setFarms(newFarms);
     };
 
@@ -226,8 +247,8 @@ export default function DashboardProducer({
                 vegetation_area: farm.vegetation_area?.toString() || '0',
                 harvests: (farm.harvests || []).map(h => ({
                     year: h.year?.trim() || '',
-                    crops: (h.crops || []).filter((c: string) => c && c.trim() !== '').map((c: string) => c.trim())
-                })).filter(h => h.year.trim() !== '') // Remove safras sem ano
+                    name: h.name?.trim() || '' // Nome da plantação/cultura
+                })).filter(h => h.year.trim() !== '' && h.name.trim() !== '') // Remove safras sem ano ou nome
             }))
             .filter(farm => farm.name.trim() !== '' && farm.city.trim() !== '' && farm.state.trim() !== ''); // Remove fazendas incompletas
 
@@ -287,8 +308,8 @@ export default function DashboardProducer({
                 vegetation_area: farm.vegetation_area?.toString() || '0',
                 harvests: (farm.harvests || []).map(h => ({
                     year: h.year?.trim() || '',
-                    crops: (h.crops || []).filter((c: string) => c && c.trim() !== '').map((c: string) => c.trim())
-                })).filter(h => h.year.trim() !== '') // Remove safras sem ano
+                    name: h.name?.trim() || '' // Nome da plantação/cultura
+                })).filter(h => h.year.trim() !== '' && h.name.trim() !== '') // Remove safras sem ano ou nome
             }))
             .filter(farm => farm.name.trim() !== '' && farm.city.trim() !== '' && farm.state.trim() !== ''); // Remove fazendas incompletas
 
@@ -677,59 +698,13 @@ export default function DashboardProducer({
                                                                 placeholder="Ex: 2024"
                                                             />
 
-                                                            <div className="mt-2">
-                                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                                    Culturas
-                                                                </label>
-                                                                <div className="space-y-2">
-                                                                    {harvest.crops.map((crop, cropIndex) => (
-                                                                        <div key={cropIndex} className="flex items-center gap-2">
-                                                                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                                                                                {crop}
-                                                                            </span>
-                                                                            <Button
-                                                                                type="button"
-                                                                                variant="cancel"
-                                                                                onClick={() => removeCrop(farmIndex, harvestIndex, cropIndex)}
-                                                                                className="text-xs p-1"
-                                                                            >
-                                                                                <Icon icon="mdi:close" className="w-3 h-3" />
-                                                                            </Button>
-                                                                        </div>
-                                                                    ))}
-                                                                    <div className="flex gap-2">
-                                                                        <input
-                                                                            type="text"
-                                                                            placeholder="Nome da cultura (ex: Soja)"
-                                                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                                                            onKeyDown={(e) => {
-                                                                                if (e.key === 'Enter') {
-                                                                                    e.preventDefault();
-                                                                                    const input = e.target as HTMLInputElement;
-                                                                                    if (input.value.trim()) {
-                                                                                        addCrop(farmIndex, harvestIndex, input.value.trim());
-                                                                                        input.value = '';
-                                                                                    }
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="outline"
-                                                                            onClick={(e) => {
-                                                                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                                                                                if (input?.value.trim()) {
-                                                                                    addCrop(farmIndex, harvestIndex, input.value.trim());
-                                                                                    input.value = '';
-                                                                                }
-                                                                            }}
-                                                                            className="text-xs"
-                                                                        >
-                                                                            <Icon icon="mdi:plus" className="w-3 h-3" />
-                                                                        </Button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+                                                            <InputPopUpAdmin
+                                                                label="Nome da Plantação/Cultura"
+                                                                value={harvest.name}
+                                                                onChange={(e) => updateHarvestName(farmIndex, harvestIndex, e.target.value)}
+                                                                errorMessage={errors[`farms.${farmIndex}.harvests.${harvestIndex}.name`]}
+                                                                placeholder="Ex: Soja, Milho, Café"
+                                                            />
                                                         </div>
                                                     ))}
                                                 </div>
@@ -797,11 +772,20 @@ export default function DashboardProducer({
                             setIsEditModalOpen(false);
                             setIsEditing(false);
                             setSelectedProducer(null);
+                            setLoadingProducerData(false);
                         }}
                         title="Editar Produtor"
                     >
-                        <Form validationErrors={errors} onSubmit={submitEditProducer}>
-                            <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
+                        {loadingProducerData ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="text-center">
+                                    <Icon icon="line-md:loading-twotone-loop" className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
+                                    <p className="text-gray-600">Carregando dados do produtor...</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <Form validationErrors={errors} onSubmit={submitEditProducer}>
+                                <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
                                 {/* Dados do Produtor */}
                                 <div className="border-b border-gray-200 pb-4">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Dados do Produtor</h3>
@@ -984,59 +968,13 @@ export default function DashboardProducer({
                                                                 placeholder="Ex: 2024"
                                                             />
 
-                                                            <div className="mt-2">
-                                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                                    Culturas
-                                                                </label>
-                                                                <div className="space-y-2">
-                                                                    {harvest.crops.map((crop, cropIndex) => (
-                                                                        <div key={cropIndex} className="flex items-center gap-2">
-                                                                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                                                                                {crop}
-                                                                            </span>
-                                                                            <Button
-                                                                                type="button"
-                                                                                variant="cancel"
-                                                                                onClick={() => removeCrop(farmIndex, harvestIndex, cropIndex)}
-                                                                                className="text-xs p-1"
-                                                                            >
-                                                                                <Icon icon="mdi:close" className="w-3 h-3" />
-                                                                            </Button>
-                                                                        </div>
-                                                                    ))}
-                                                                    <div className="flex gap-2">
-                                                                        <input
-                                                                            type="text"
-                                                                            placeholder="Nome da cultura (ex: Soja)"
-                                                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                                                            onKeyDown={(e) => {
-                                                                                if (e.key === 'Enter') {
-                                                                                    e.preventDefault();
-                                                                                    const input = e.target as HTMLInputElement;
-                                                                                    if (input.value.trim()) {
-                                                                                        addCrop(farmIndex, harvestIndex, input.value.trim());
-                                                                                        input.value = '';
-                                                                                    }
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="outline"
-                                                                            onClick={(e) => {
-                                                                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                                                                                if (input?.value.trim()) {
-                                                                                    addCrop(farmIndex, harvestIndex, input.value.trim());
-                                                                                    input.value = '';
-                                                                                }
-                                                                            }}
-                                                                            className="text-xs"
-                                                                        >
-                                                                            <Icon icon="mdi:plus" className="w-3 h-3" />
-                                                                        </Button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+                                                            <InputPopUpAdmin
+                                                                label="Nome da Plantação/Cultura"
+                                                                value={harvest.name}
+                                                                onChange={(e) => updateHarvestName(farmIndex, harvestIndex, e.target.value)}
+                                                                errorMessage={errors[`farms.${farmIndex}.harvests.${harvestIndex}.name`]}
+                                                                placeholder="Ex: Soja, Milho, Café"
+                                                            />
                                                         </div>
                                                     ))}
                                                 </div>
@@ -1087,6 +1025,7 @@ export default function DashboardProducer({
                                 </div>
                             </div>
                         </Form>
+                        )}
                     </DynamicModal>
 
                     {/* Modal Excluir */}

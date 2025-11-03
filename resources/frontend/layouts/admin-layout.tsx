@@ -38,7 +38,7 @@ const fullMenuSections: MenuSection[] = [
             {
                 name: 'Fazendas',
                 href: 'admin.dashboard.farm',
-                icon: 'mdi:barn',
+                icon: 'lucide-lab:farm',
             },
             {
                 name: 'Colheitas',

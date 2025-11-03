@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Producer;
 use App\Models\Farm;
 use App\Models\Harvest;
-use App\Models\Crop;
+// use App\Models\Crop; // Removido - não usado mais (nome da cultura agora está em harvests.name)
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Validator;
@@ -51,8 +51,7 @@ class FarmController extends Controller
             'vegetation_area' => 'required|numeric|min:0',
             'harvests' => 'nullable|array',
             'harvests.*.year' => 'required|string',
-            'harvests.*.crops' => 'nullable|array',
-            'harvests.*.crops.*' => 'nullable|string',
+            'harvests.*.name' => 'required|string|max:255', // Nome da plantação/cultura
         ]);
 
         // Validar soma das áreas
@@ -78,24 +77,19 @@ class FarmController extends Controller
             'vegetation_area' => $vegetationArea,
         ]);
 
-        // Criar safras e culturas
+        // Criar safras (agora com nome direto na tabela)
         if ($request->has('harvests') && is_array($request->harvests)) {
             foreach ($request->harvests as $harvestData) {
-                $harvest = Harvest::create([
-                    'farm_id' => $farm->id,
-                    'year' => $harvestData['year'],
-                ]);
-
-                if (isset($harvestData['crops']) && is_array($harvestData['crops'])) {
-                    foreach ($harvestData['crops'] as $cropName) {
-                        if (!empty($cropName)) {
-                            Crop::create([
-                                'harvest_id' => $harvest->id,
-                                'name' => $cropName,
-                            ]);
-                        }
-                    }
+                // Validar que a safra tem ano e nome
+                if (empty($harvestData['year']) || empty($harvestData['name'])) {
+                    continue; // Pula safras sem ano ou nome
                 }
+
+                Harvest::create([
+                    'farm_id' => $farm->id,
+                    'year' => trim($harvestData['year']),
+                    'name' => trim($harvestData['name']), // Nome da plantação/cultura
+                ]);
             }
         }
 
@@ -143,10 +137,7 @@ class FarmController extends Controller
     {
         $farm = Farm::where('producer_id', $producerId)->findOrFail($farmId);
         
-        // Deletar em cascata (harvests, crops)
-        foreach ($farm->harvests as $harvest) {
-            $harvest->crops()->delete();
-        }
+        // Deletar em cascata (harvests)
         $farm->harvests()->delete();
         $farm->delete();
 
