@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "jsx": "react-jsx",
+        "strict": true,
+        "skipDefaultLibCheck": true,
+        "skipLibCheck": true,
+        "isolatedModules": true,
+        "target": "ESNext",
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "noEmit": true,
+        "paths": {
+            "@/*": ["./resources/frontend/*"],
+            "components/*": ["./resources/frontend/components/*"],
+            "layouts": ["./resources/frontend/layouts/index.ts"],
+            "ziggy-js": ["./vendor/tightenco/ziggy"]
+        }
+    },
+    "include": ["resources/frontend/**/*.ts", "resources/frontend/**/*.tsx", "resources/frontend/**/*.d.ts"],
+    "exclude": ["node_modules", "public"]
+}
+
+
