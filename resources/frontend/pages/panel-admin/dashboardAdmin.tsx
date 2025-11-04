@@ -126,7 +126,7 @@ export default function DashboardAdmin({
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('admin.dashboard.admin'), {
+        router.get(route('admin.admin.dashboard.admin'), {
             page,
             search,
             per_page: itemsPerPage
@@ -136,7 +136,7 @@ export default function DashboardAdmin({
     const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newItemsPerPage = parseInt(e.target.value);
         setItemsPerPage(newItemsPerPage);
-        router.get(route('admin.dashboard.admin'), {
+        router.get(route('admin.admin.dashboard.admin'), {
             page: 1,
             search,
             per_page: newItemsPerPage
@@ -145,7 +145,7 @@ export default function DashboardAdmin({
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            router.get(route('admin.dashboard.admin'), {
+            router.get(route('admin.admin.dashboard.admin'), {
                 search,
                 per_page: itemsPerPage
             }, { preserveState: true });

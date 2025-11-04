@@ -147,6 +147,7 @@ interface SelectProps {
     disabled?: boolean;
     placeholder?: string;
     searchable?: boolean; // Nova propriedade para habilitar pesquisa
+    variant?: 'dark' | 'light'; // Variante de estilo (escuro ou claro)
 }
 
 export const Select: React.FC<SelectProps> = ({
@@ -159,7 +160,8 @@ export const Select: React.FC<SelectProps> = ({
     hideDefaultWhenOpen = false,
     disabled = false,
     placeholder = 'Selecione',
-    searchable = true // Por padrão, habilitado
+    searchable = true, // Por padrão, habilitado
+    variant = 'dark' // Padrão escuro para manter compatibilidade
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -235,7 +237,8 @@ export const Select: React.FC<SelectProps> = ({
                 <label
                     className={cn(
                         'absolute left-3 z-10 text-sm transition-all pointer-events-none',
-                        'px-1 text-xs top-[-8px] text-primary bg-slate-900',
+                        'px-1 text-xs top-[-8px] text-primary',
+                        variant === 'light' ? 'bg-white' : 'bg-slate-900',
                         'peer-focus:top-[-8px] peer-focus:text-xs peer-focus:text-primary'
                     )}
                 >
@@ -247,10 +250,12 @@ export const Select: React.FC<SelectProps> = ({
                 <div
                     onClick={handleInputClick}
                     className={cn(
-                        'peer w-full px-3 h-11 border rounded-md text-base text-white bg-slate-900 focus:outline-none',
+                        'peer w-full px-3 h-11 border rounded-md text-base focus:outline-none',
                         'cursor-pointer flex items-center justify-between',
-                        errorMessage ? 'border-red-500' : 'border-primary/30',
-                        'focus:border-primary focus:ring-2 focus:ring-primary/30',
+                        variant === 'light' 
+                            ? 'bg-white text-gray-700 border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary' 
+                            : 'text-white bg-slate-900 border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/30',
+                        errorMessage ? 'border-red-500' : '',
                         'transition-all duration-200 ease-in-out',
                         disabled && 'opacity-70 cursor-not-allowed',
                         className
@@ -263,12 +268,19 @@ export const Select: React.FC<SelectProps> = ({
                             value={searchTerm}
                             onChange={handleInputChange}
                             placeholder="Digite para pesquisar..."
-                            className="flex-1 bg-transparent outline-none text-white placeholder-gray-400"
+                            className={cn(
+                                'flex-1 bg-transparent outline-none',
+                                variant === 'light' ? 'text-gray-700 placeholder-gray-400' : 'text-white placeholder-gray-400'
+                            )}
                             onClick={(e) => e.stopPropagation()}
                             onFocus={(e) => e.stopPropagation()}
                         />
                     ) : (
-                        <span className={selectedLabel ? 'text-white' : 'text-gray-400'}>
+                        <span className={cn(
+                            variant === 'light' 
+                                ? selectedLabel ? 'text-gray-700' : 'text-gray-400'
+                                : selectedLabel ? 'text-white' : 'text-gray-400'
+                        )}>
                             {selectedLabel || placeholder}
                         </span>
                     )}
@@ -290,15 +302,23 @@ export const Select: React.FC<SelectProps> = ({
 
                 {/* Dropdown */}
                 {isOpen && (
-                    <div className="absolute z-50 w-full mt-1 bg-slate-900 border border-primary/30 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    <div className={cn(
+                        'absolute z-50 w-full mt-1 border rounded-md shadow-lg max-h-60 overflow-y-auto',
+                        variant === 'light' 
+                            ? 'bg-white border-gray-300' 
+                            : 'bg-slate-900 border-primary/30'
+                    )}>
                         {finalOptions.length > 0 ? (
                             finalOptions.map((option) => (
                                 <div
                                     key={option.value}
                                     onClick={(e) => handleOptionClick(e, option.value)}
                                     className={cn(
-                                        'px-3 py-2 cursor-pointer text-white hover:bg-primary/20 transition-colors',
-                                        option.value === value && 'bg-primary/30',
+                                        'px-3 py-2 cursor-pointer transition-colors',
+                                        variant === 'light'
+                                            ? 'text-gray-700 hover:bg-gray-100'
+                                            : 'text-white hover:bg-primary/20',
+                                        option.value === value && (variant === 'light' ? 'bg-gray-100' : 'bg-primary/30'),
                                         option.value === '' && 'text-gray-400'
                                     )}
                                 >
@@ -425,6 +445,7 @@ export const CitySelect: React.FC<CitySelectProps> = ({
                 disabled={loading || !state}
                 hideDefaultWhenOpen={true}
                 placeholder={loading ? 'Carregando...' : 'Selecione uma cidade'}
+                variant="light"
             />
             {loading && (
                 <div className="flex absolute right-10 top-1/2 items-center transform -translate-y-1/2">

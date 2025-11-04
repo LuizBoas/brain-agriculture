@@ -24,7 +24,7 @@ class AdminController extends Controller
             });
         }
 
-        $perPage = $request->get('per_page', 15);
+        $perPage = $request->get('per_page', 10);
         $admins = $query->paginate($perPage);
 
         return Inertia::render('panel-admin/dashboardAdmin', [
@@ -50,7 +50,7 @@ class AdminController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        return redirect()->route('admin.dashboard.admin')->with('success', 'Administrador cadastrado com sucesso!');
+        return redirect()->route('admin.admin.dashboard.admin')->with('success', 'Administrador cadastrado com sucesso!');
     }
 
     public function update(Request $request, $id)
@@ -78,7 +78,7 @@ class AdminController extends Controller
 
         $admin->update($data);
 
-        return redirect()->route('admin.dashboard.admin')->with('success', 'Administrador atualizado com sucesso!');
+        return redirect()->route('admin.admin.dashboard.admin')->with('success', 'Administrador atualizado com sucesso!');
     }
 
     public function destroy($id)
@@ -92,6 +92,6 @@ class AdminController extends Controller
 
         $admin->delete();
 
-        return redirect()->route('admin.dashboard.admin')->with('success', 'Administrador excluído com sucesso!');
+        return redirect()->route('admin.admin.dashboard.admin')->with('success', 'Administrador excluído com sucesso!');
     }
 }

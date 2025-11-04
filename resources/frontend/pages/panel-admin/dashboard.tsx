@@ -1,13 +1,16 @@
 import { Button } from '@/components/common/button';
 import { Container } from '@/components/common/container';
 import { AdminLayout } from '@/layouts/admin-layout';
-import { PagePropsData } from '@/types';
+import { AuthData } from '@/types';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Link } from '@inertiajs/react';
+import { useMemo } from 'react';
 import 'chart.js/auto';
 import { Doughnut } from 'react-chartjs-2';
+import { BrasilMap } from '@/components/common/BrasilMap';
 
 interface DashboardProps {
+    auth: AuthData;
     totalFarms: number;
     totalHectares: number;
     byState: Array<{ label: string; value: number }>;
@@ -22,49 +25,47 @@ export default function Dashboard({
     byState,
     byCrop,
     bySoilUse
-}: PagePropsData & DashboardProps) {
-    // Configuração do gráfico por Estado
-    const stateChartData = {
-        labels: byState.map(item => item.label),
-        datasets: [
-            {
-                data: byState.map(item => item.value),
-                backgroundColor: [
-                    '#6366f1', // Indigo
-                    '#8b5cf6', // Violet
-                    '#a855f7', // Purple
-                    '#c084fc', // Fuchsia
-                    '#d946ef', // Pink
-                ],
-                borderWidth: 0,
-            },
-        ],
+}: DashboardProps) {
+    // Função para gerar cores diferentes para cada cultura
+    const generateColors = (count: number): string[] => {
+        const colors: string[] = [];
+        const hueStep = 360 / count; // Divide o círculo de cores (HSL) em partes iguais
+        
+        for (let i = 0; i < count; i++) {
+            const hue = (i * hueStep) % 360;
+            // Usar saturação e luminosidade que geram cores bonitas
+            const saturation = 60 + (i % 3) * 10; // Entre 60-80%
+            const lightness = 50 + (i % 2) * 5; // Entre 50-55%
+            colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+        }
+        
+        return colors;
     };
 
-    // Configuração do gráfico por Cultura
-    const cropChartData = {
-        labels: byCrop.map(item => item.label),
-        datasets: [
-            {
-                data: byCrop.map(item => item.value),
-                backgroundColor: [
-                    '#10b981', // Emerald
-                    '#059669', // Emerald darker
-                    '#34d399', // Emerald lighter
-                    '#6ee7b7', // Emerald light
-                    '#a7f3d0', // Emerald very light
-                ],
-                borderWidth: 0,
-            },
-        ],
-    };
+    // Configuração do gráfico por Cultura - mostra todas as culturas ordenadas por quantidade (maior para menor)
+    const cropChartData = useMemo(() => {
+        // Ordenar por quantidade (da maior para a menor)
+        const sorted = [...byCrop].sort((a, b) => b.value - a.value);
+        const colors = generateColors(sorted.length);
+        
+        return {
+            labels: sorted.map((item: { label: string; value: number }) => item.label),
+            datasets: [
+                {
+                    data: sorted.map((item: { label: string; value: number }) => item.value),
+                    backgroundColor: colors,
+                    borderWidth: 0,
+                },
+            ],
+        };
+    }, [byCrop]);
 
     // Configuração do gráfico por Uso do Solo
     const soilUseChartData = {
-        labels: bySoilUse.map(item => item.label),
+        labels: bySoilUse.map((item: { label: string; value: number }) => item.label),
         datasets: [
             {
-                data: bySoilUse.map(item => item.value),
+                data: bySoilUse.map((item: { label: string; value: number }) => item.value),
                 backgroundColor: ['#6366f1', '#10b981'], // Indigo e Emerald
                 borderWidth: 0,
             },
@@ -81,16 +82,18 @@ export default function Dashboard({
                 labels: {
                     color: '#6b7280',
                     font: {
-                        size: 13,
+                        size: 11,
                         family: 'Inter, system-ui, sans-serif',
                         weight: 'normal' as const
                     },
-                    padding: 16,
-                    boxWidth: 16,
-                    boxHeight: 8,
-                    borderRadius: 6,
-                    usePointStyle: true
-                }
+                    padding: 10,
+                    boxWidth: 12,
+                    boxHeight: 6,
+                    borderRadius: 4,
+                    usePointStyle: true,
+                    maxWidth: 150
+                },
+                maxWidth: 400
             },
             tooltip: {
                 backgroundColor: 'rgba(17, 24, 39, 0.95)',
@@ -110,12 +113,7 @@ export default function Dashboard({
                 borderWidth: 1
             }
         },
-        cutout: '60%',
-        layout: {
-            padding: {
-                right: byState.length > 0 ? 200 : 0
-            }
-        }
+        cutout: '60%'
     };
 
     return (
@@ -135,7 +133,7 @@ export default function Dashboard({
                                 <p className="text-sm text-gray-500">Acompanhe as métricas em tempo real</p>
                             </div>
                         </div>
-                        <Link href={route('admin.dashboard.producer')}>
+                        <Link href={route('admin.admin.dashboard.producer')}>
                             <Button className="flex items-center gap-2">
                                 <Icon icon="mdi:account-plus" className="w-5 h-5" />
                                 Gerenciar Produtores
@@ -184,18 +182,16 @@ export default function Dashboard({
 
                 {/* Gráficos */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {/* Gráfico por Estado */}
+                    {/* Mapa do Brasil por Estado */}
                     <div className="p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">Por Estado</h2>
-                        <div className="w-full h-[300px] flex items-center justify-center">
-                            <Doughnut data={stateChartData} options={chartOptions} />
-                        </div>
+                        <BrasilMap data={byState} />
                     </div>
 
                     {/* Gráfico por Cultura */}
                     <div className="p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">Por Cultura</h2>
-                        <div className="w-full h-[300px] flex items-center justify-center">
+                        <div className="w-full h-[450px] flex items-center justify-center">
                             <Doughnut data={cropChartData} options={chartOptions} />
                         </div>
                     </div>

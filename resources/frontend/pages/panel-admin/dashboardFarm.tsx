@@ -1,11 +1,29 @@
 import { AdminLayout } from '@/layouts/admin-layout';
-import { PagePropsData } from '@/types';
+import { AuthData } from '@/types';
 import { Icon } from '@iconify/react';
 import { useEffect, useState } from 'react';
 import CompleteTable from '@/components/admin-panel/complete-table';
 import SearchInput from '@/components/admin-panel/search-input';
 import { Container } from '@/components/common/container';
-import { router } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
+import { DynamicModal } from '@/components/admin-panel/dynamic-modal-admin';
+import { InputPopUpAdmin } from '@/components/common/field';
+import { Button } from '@/components/common/button';
+import { Form } from '@/components/common/form';
+import { ActionAdminPopup } from '@/components/admin-panel/action-admin-popup';
+import { CitySelect, Select } from '@/components/common/form-fields';
+import { getStatesForSelect } from '@/data/geographic-data';
+
+interface Crop {
+    id: string;
+    name: string;
+}
+
+interface Harvest {
+    id: string;
+    year: string;
+    crops: Crop[];
+}
 
 interface Farm {
     id: string;
@@ -21,7 +39,15 @@ interface Farm {
         document: string;
         document_type: string;
     };
+    harvests?: Harvest[];
     harvests_count?: number;
+}
+
+interface Producer {
+    id: string;
+    name: string;
+    document: string;
+    document_type: string;
 }
 
 interface FarmPagination {
@@ -32,17 +58,47 @@ interface FarmPagination {
         per_page: number;
         total: number;
     };
+    producers?: Producer[];
 }
 
 export default function DashboardFarm({
-    auth,
-    farms
-}: PagePropsData & FarmPagination) {
+    farms,
+    producers = []
+}: FarmPagination) {
     const [search, setSearch] = useState('');
     const [itemsPerPage, setItemsPerPage] = useState(farms.per_page);
+    const [isAddFarmModalOpen, setIsAddFarmModalOpen] = useState(false);
+    const [isEditFarmModalOpen, setIsEditFarmModalOpen] = useState(false);
+    const [selectedFarm, setSelectedFarm] = useState<Farm | null>(null);
+    const [menuOpen, setMenuOpen] = useState<number | null>(null);
+    const [editHarvests, setEditHarvests] = useState<Array<{ year: string; crops: string[] }>>([]);
+    const [addHarvests, setAddHarvests] = useState<Array<{ year: string; crops: string[] }>>([]);
+
+    // Form para adicionar fazenda
+    const { data: addFarmData, setData: setAddFarmData, post: postFarm, reset: resetAddFarm, errors: addFarmErrors, processing: processingAddFarm } = useForm({
+        producer_id: '',
+        name: '',
+        city: '',
+        state: '',
+        total_area: '',
+        arable_area: '',
+        vegetation_area: '',
+        harvests: [] as Array<{ year: string; crops: string[] }>
+    });
+
+    // Form para editar fazenda
+    const { data: editFarmData, setData: setEditFarmData, put: putFarm, reset: resetEditFarm, errors: editFarmErrors, processing: processingFarm } = useForm({
+        name: '',
+        city: '',
+        state: '',
+        total_area: '',
+        arable_area: '',
+        vegetation_area: '',
+        harvests: [] as Array<{ year: string; crops: string[] }>
+    });
 
     const handlePageChange = (page: number) => {
-        router.get(route('admin.dashboard.farm'), {
+        router.get(route('admin.admin.dashboard.farm'), {
             page,
             search,
             per_page: itemsPerPage
@@ -52,7 +108,7 @@ export default function DashboardFarm({
     const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newItemsPerPage = parseInt(e.target.value);
         setItemsPerPage(newItemsPerPage);
-        router.get(route('admin.dashboard.farm'), {
+        router.get(route('admin.admin.dashboard.farm'), {
             page: 1,
             search,
             per_page: newItemsPerPage
@@ -61,7 +117,7 @@ export default function DashboardFarm({
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            router.get(route('admin.dashboard.farm'), {
+            router.get(route('admin.admin.dashboard.farm'), {
                 search,
                 per_page: itemsPerPage
             }, { preserveState: true });
@@ -77,8 +133,160 @@ export default function DashboardFarm({
         { title: 'Área Total (ha)', field: 'total_area', sortable: false },
         { title: 'Área Agricultável (ha)', field: 'arable_area', sortable: false },
         { title: 'Área Vegetação (ha)', field: 'vegetation_area', sortable: false },
-        { title: 'Safras', field: 'harvests_count', sortable: false }
+        { title: 'Ações', field: 'actions', sortable: false }
     ];
+
+    const handleEditFarm = (farm: Farm) => {
+        setSelectedFarm(farm);
+        
+        // Preparar safras para edição
+        const harvestsData = farm.harvests && farm.harvests.length > 0
+            ? farm.harvests.map(h => ({
+                year: h.year,
+                crops: h.crops?.map(c => c.name) || []
+            }))
+            : [];
+        
+        setEditHarvests(harvestsData);
+        
+        setEditFarmData({
+            name: farm.name,
+            city: farm.city,
+            state: farm.state,
+            total_area: farm.total_area.toString(),
+            arable_area: farm.arable_area.toString(),
+            vegetation_area: farm.vegetation_area.toString(),
+            harvests: harvestsData
+        });
+        
+        setIsEditFarmModalOpen(true);
+    };
+
+    const submitEditFarm = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedFarm) return;
+        
+        const harvestsData = editHarvests.map(h => ({
+            year: h.year,
+            crops: h.crops.filter(c => c.trim() !== '').map(c => c.trim())
+        })).filter(h => h.year.trim() !== '' && h.crops.length > 0);
+
+        // Usar router.put diretamente para garantir que os dados sejam enviados
+        router.put(route('admin.farm.edit', { producerId: selectedFarm.producer.id, farmId: selectedFarm.id }), {
+            ...editFarmData,
+            harvests: harvestsData
+        }, {
+            preserveScroll: false,
+            onSuccess: () => {
+                resetEditFarm();
+                setEditHarvests([]);
+                setIsEditFarmModalOpen(false);
+                setSelectedFarm(null);
+                router.reload();
+            },
+            onError: (errors) => {
+                console.error('Erro ao atualizar fazenda:', errors);
+            }
+        });
+    };
+
+    const handleAddFarm = () => {
+        setAddHarvests([]);
+        setIsAddFarmModalOpen(true);
+    };
+
+    const submitAddFarm = (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        const harvestsData = addHarvests.map(h => ({
+            year: h.year,
+            crops: h.crops.filter(c => c.trim() !== '').map(c => c.trim())
+        })).filter(h => h.year.trim() !== '' && h.crops.length > 0);
+
+        // Usar router.post diretamente para garantir que os dados sejam enviados
+        router.post(route('admin.farm.create', { producerId: addFarmData.producer_id }), {
+            ...addFarmData,
+            harvests: harvestsData
+        }, {
+            preserveScroll: false,
+            onSuccess: () => {
+                resetAddFarm();
+                setAddHarvests([]);
+                setIsAddFarmModalOpen(false);
+                // O backend já redireciona para a tela de detalhes do produtor
+            },
+            onError: (errors) => {
+                console.error('Erro ao criar fazenda:', errors);
+            }
+        });
+    };
+
+    // Funções para gerenciar safras na edição
+    const addEditHarvest = () => {
+        setEditHarvests([...editHarvests, { year: '', crops: [] }]);
+    };
+
+    const removeEditHarvest = (index: number) => {
+        setEditHarvests(editHarvests.filter((_, i) => i !== index));
+    };
+
+    const updateEditHarvestYear = (index: number, year: string) => {
+        const newHarvests = [...editHarvests];
+        newHarvests[index].year = year;
+        setEditHarvests(newHarvests);
+    };
+
+    const addEditCrop = (harvestIndex: number) => {
+        const newHarvests = [...editHarvests];
+        newHarvests[harvestIndex].crops.push('');
+        setEditHarvests(newHarvests);
+    };
+
+    const removeEditCrop = (harvestIndex: number, cropIndex: number) => {
+        const newHarvests = [...editHarvests];
+        newHarvests[harvestIndex].crops = newHarvests[harvestIndex].crops.filter((_, i) => i !== cropIndex);
+        setEditHarvests(newHarvests);
+    };
+
+    const updateEditCrop = (harvestIndex: number, cropIndex: number, value: string) => {
+        const newHarvests = [...editHarvests];
+        newHarvests[harvestIndex].crops[cropIndex] = value;
+        setEditHarvests(newHarvests);
+    };
+
+    // Funções para gerenciar safras na adição
+    const addAddHarvest = () => {
+        setAddHarvests([...addHarvests, { year: '', crops: [] }]);
+    };
+
+    const removeAddHarvest = (index: number) => {
+        setAddHarvests(addHarvests.filter((_, i) => i !== index));
+    };
+
+    const updateAddHarvestYear = (index: number, year: string) => {
+        const newHarvests = [...addHarvests];
+        newHarvests[index].year = year;
+        setAddHarvests(newHarvests);
+    };
+
+    const addAddCrop = (harvestIndex: number) => {
+        const newHarvests = [...addHarvests];
+        newHarvests[harvestIndex].crops.push('');
+        setAddHarvests(newHarvests);
+    };
+
+    const removeAddCrop = (harvestIndex: number, cropIndex: number) => {
+        const newHarvests = [...addHarvests];
+        newHarvests[harvestIndex].crops = newHarvests[harvestIndex].crops.filter((_, i) => i !== cropIndex);
+        setAddHarvests(newHarvests);
+    };
+
+    const updateAddCrop = (harvestIndex: number, cropIndex: number, value: string) => {
+        const newHarvests = [...addHarvests];
+        newHarvests[harvestIndex].crops[cropIndex] = value;
+        setAddHarvests(newHarvests);
+    };
+
 
     const formatDocument = (document: string, type: string) => {
         const cleaned = document.replace(/\D/g, '');
@@ -93,9 +301,15 @@ export default function DashboardFarm({
         <AdminLayout>
             <div className="min-h-screen p-6">
                 <Container>
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-secondary mb-2">Fazendas</h1>
-                        <p className="text-secondary70">Visualize todas as fazendas cadastradas</p>
+                    <div className="mb-8 flex justify-between items-center">
+                        <div>
+                            <h1 className="text-3xl font-bold text-secondary mb-2">Fazendas</h1>
+                            <p className="text-secondary70">Visualize todas as fazendas cadastradas</p>
+                        </div>
+                        <Button onClick={handleAddFarm} className="flex items-center gap-2">
+                            <Icon icon="mdi:plus" className="w-5 h-5" />
+                            Adicionar Fazenda
+                        </Button>
                     </div>
 
                     {/* Busca */}
@@ -118,7 +332,7 @@ export default function DashboardFarm({
                             itemsPerPage={itemsPerPage}
                         >
                             <tbody>
-                                {farms.data?.map((farm, index) => (
+                                {farms.data?.map((farm: Farm, index: number) => (
                                     <tr
                                         key={farm.id}
                                         className={`hover:bg-gray-100 text-gray-600 gap-4 text-sm ${
@@ -153,10 +367,21 @@ export default function DashboardFarm({
                                                 maximumFractionDigits: 2,
                                             })}
                                         </td>
-                                        <td className="px-4 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <Icon icon="mdi:flower" className="w-5 h-5 text-primary" />
-                                                <span>{farm.harvests_count || 0}</span>
+                                        <td className="px-2 py-2 text-center">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <Icon
+                                                    icon="material-symbols:more-vert"
+                                                    className="w-6 h-6 rounded-full cursor-pointer hover:bg-gray-100"
+                                                    onClick={() => setMenuOpen(menuOpen === index ? null : index)}
+                                                />
+                                                <div className={`z-50`}>
+                                                    {menuOpen === index && (
+                                                        <ActionAdminPopup
+                                                            onEdit={() => handleEditFarm(farm)}
+                                                            closeMenu={() => setMenuOpen(null)}
+                                                        />
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -164,10 +389,364 @@ export default function DashboardFarm({
                             </tbody>
                         </CompleteTable>
                     </div>
+
+                    {/* Modal Adicionar Fazenda */}
+                    <DynamicModal
+                        isOpen={isAddFarmModalOpen}
+                        onClose={() => {
+                            resetAddFarm();
+                            setAddHarvests([]);
+                            setIsAddFarmModalOpen(false);
+                        }}
+                        title="Adicionar Fazenda"
+                    >
+                        <Form validationErrors={addFarmErrors} onSubmit={submitAddFarm}>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Produtor *
+                                    </label>
+                                    <select
+                                        value={addFarmData.producer_id}
+                                        onChange={(e) => setAddFarmData('producer_id', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                        required
+                                    >
+                                        <option value="">Selecione um produtor...</option>
+                                        {producers.map((producer: Producer) => (
+                                            <option key={producer.id} value={producer.id}>
+                                                {producer.name} - {formatDocument(producer.document, producer.document_type)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {addFarmErrors.producer_id && (
+                                        <p className="mt-1 text-sm text-red-500">{addFarmErrors.producer_id}</p>
+                                    )}
+                                </div>
+
+                                <InputPopUpAdmin
+                                    label="Nome da Fazenda"
+                                    value={addFarmData.name}
+                                    onChange={(e) => setAddFarmData('name', e.target.value)}
+                                    errorMessage={addFarmErrors.name}
+                                    placeholder="Nome da propriedade"
+                                />
+
+                                <Select
+                                    label="Estado"
+                                    value={addFarmData.state}
+                                    onChange={(value) => {
+                                        setAddFarmData('state', value);
+                                        // Limpar cidade quando o estado mudar
+                                        setAddFarmData('city', '');
+                                    }}
+                                    errorMessage={addFarmErrors.state}
+                                    options={getStatesForSelect()}
+                                    hideDefaultWhenOpen={true}
+                                    variant="light"
+                                />
+
+                                <CitySelect
+                                    label="Cidade"
+                                    state={addFarmData.state}
+                                    value={addFarmData.city}
+                                    onChange={(value) => setAddFarmData('city', value)}
+                                    errorMessage={addFarmErrors.city}
+                                />
+
+                                <InputPopUpAdmin
+                                    label="Área Total (hectares)"
+                                    type="number"
+                                    step="0.01"
+                                    value={addFarmData.total_area}
+                                    onChange={(e) => setAddFarmData('total_area', e.target.value)}
+                                    errorMessage={addFarmErrors.total_area}
+                                    placeholder="0.00"
+                                />
+
+                                <InputPopUpAdmin
+                                    label="Área Agricultável (hectares)"
+                                    type="number"
+                                    step="0.01"
+                                    value={addFarmData.arable_area}
+                                    onChange={(e) => setAddFarmData('arable_area', e.target.value)}
+                                    errorMessage={addFarmErrors.arable_area}
+                                    placeholder="0.00"
+                                />
+
+                                <InputPopUpAdmin
+                                    label="Área de Vegetação (hectares)"
+                                    type="number"
+                                    step="0.01"
+                                    value={addFarmData.vegetation_area}
+                                    onChange={(e) => setAddFarmData('vegetation_area', e.target.value)}
+                                    errorMessage={addFarmErrors.vegetation_area}
+                                    placeholder="0.00"
+                                />
+
+                                {/* Safras */}
+                                <div className="pt-4 border-t border-gray-200">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Safras
+                                        </label>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            onClick={addAddHarvest}
+                                            className="text-xs"
+                                        >
+                                            <Icon icon="mdi:plus" className="w-4 h-4" />
+                                            Adicionar Safra
+                                        </Button>
+                                    </div>
+
+                                    {addHarvests.map((harvest, harvestIndex) => (
+                                        <div key={harvestIndex} className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-sm font-medium text-gray-700">Safra {harvestIndex + 1}</span>
+                                                <Button
+                                                    type="button"
+                                                    variant="cancel"
+                                                    onClick={() => removeAddHarvest(harvestIndex)}
+                                                    className="text-xs px-2 py-1"
+                                                >
+                                                    <Icon icon="mdi:delete" className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <InputPopUpAdmin
+                                                    label="Ano da Safra"
+                                                    value={harvest.year}
+                                                    onChange={(e) => updateAddHarvestYear(harvestIndex, e.target.value)}
+                                                    placeholder="Ex: 2024"
+                                                />
+                                                <div>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <label className="block text-xs font-medium text-gray-700">Culturas</label>
+                                                        <Button
+                                                            type="button"
+                                                            variant="secondary"
+                                                            onClick={() => addAddCrop(harvestIndex)}
+                                                            className="text-xs px-2 py-1"
+                                                        >
+                                                            <Icon icon="mdi:plus" className="w-3 h-3" />
+                                                            Adicionar
+                                                        </Button>
+                                                    </div>
+                                                    {harvest.crops.map((crop, cropIndex) => (
+                                                        <div key={cropIndex} className="flex gap-2 mb-2">
+                                                            <InputPopUpAdmin
+                                                                value={crop}
+                                                                onChange={(e) => updateAddCrop(harvestIndex, cropIndex, e.target.value)}
+                                                                placeholder="Ex: Soja, Milho"
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="cancel"
+                                                                onClick={() => removeAddCrop(harvestIndex, cropIndex)}
+                                                                className="px-3"
+                                                            >
+                                                                <Icon icon="mdi:delete" className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                                    <Button
+                                        type="button"
+                                        variant="cancel"
+                                        onClick={() => {
+                                            resetAddFarm();
+                                            setAddHarvests([]);
+                                            setIsAddFarmModalOpen(false);
+                                        }}
+                                        disabled={processingAddFarm}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button type="submit" disabled={processingAddFarm}>
+                                        {processingAddFarm ? 'Salvando...' : 'Salvar'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </Form>
+                    </DynamicModal>
+
+                    {/* Modal Editar Fazenda */}
+                    <DynamicModal
+                        isOpen={isEditFarmModalOpen}
+                        onClose={() => {
+                            resetEditFarm();
+                            setEditHarvests([]);
+                            setIsEditFarmModalOpen(false);
+                            setSelectedFarm(null);
+                        }}
+                        title="Editar Fazenda"
+                    >
+                        <Form validationErrors={editFarmErrors} onSubmit={submitEditFarm}>
+                            <div className="space-y-4">
+                                <InputPopUpAdmin
+                                    label="Nome da Fazenda"
+                                    value={editFarmData.name}
+                                    onChange={(e) => setEditFarmData('name', e.target.value)}
+                                    errorMessage={editFarmErrors.name}
+                                    placeholder="Nome da propriedade"
+                                />
+
+                                <Select
+                                    label="Estado"
+                                    value={editFarmData.state}
+                                    onChange={(value) => {
+                                        setEditFarmData('state', value);
+                                        // Limpar cidade quando o estado mudar
+                                        setEditFarmData('city', '');
+                                    }}
+                                    errorMessage={editFarmErrors.state}
+                                    options={getStatesForSelect()}
+                                    hideDefaultWhenOpen={true}
+                                    variant="light"
+                                />
+
+                                <CitySelect
+                                    label="Cidade"
+                                    state={editFarmData.state}
+                                    value={editFarmData.city}
+                                    onChange={(value) => setEditFarmData('city', value)}
+                                    errorMessage={editFarmErrors.city}
+                                />
+
+                                <InputPopUpAdmin
+                                    label="Área Total (hectares)"
+                                    type="number"
+                                    step="0.01"
+                                    value={editFarmData.total_area}
+                                    onChange={(e) => setEditFarmData('total_area', e.target.value)}
+                                    errorMessage={editFarmErrors.total_area}
+                                    placeholder="0.00"
+                                />
+
+                                <InputPopUpAdmin
+                                    label="Área Agricultável (hectares)"
+                                    type="number"
+                                    step="0.01"
+                                    value={editFarmData.arable_area}
+                                    onChange={(e) => setEditFarmData('arable_area', e.target.value)}
+                                    errorMessage={editFarmErrors.arable_area}
+                                    placeholder="0.00"
+                                />
+
+                                <InputPopUpAdmin
+                                    label="Área de Vegetação (hectares)"
+                                    type="number"
+                                    step="0.01"
+                                    value={editFarmData.vegetation_area}
+                                    onChange={(e) => setEditFarmData('vegetation_area', e.target.value)}
+                                    errorMessage={editFarmErrors.vegetation_area}
+                                    placeholder="0.00"
+                                />
+
+                                {/* Safras */}
+                                <div className="pt-4 border-t border-gray-200">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Safras
+                                        </label>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            onClick={addEditHarvest}
+                                            className="text-xs"
+                                        >
+                                            <Icon icon="mdi:plus" className="w-4 h-4" />
+                                            Adicionar Safra
+                                        </Button>
+                                    </div>
+
+                                    {editHarvests.map((harvest, harvestIndex) => (
+                                        <div key={harvestIndex} className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-sm font-medium text-gray-700">Safra {harvestIndex + 1}</span>
+                                                <Button
+                                                    type="button"
+                                                    variant="cancel"
+                                                    onClick={() => removeEditHarvest(harvestIndex)}
+                                                    className="text-xs px-2 py-1"
+                                                >
+                                                    <Icon icon="mdi:delete" className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <InputPopUpAdmin
+                                                    label="Ano da Safra"
+                                                    value={harvest.year}
+                                                    onChange={(e) => updateEditHarvestYear(harvestIndex, e.target.value)}
+                                                    placeholder="Ex: 2024"
+                                                />
+                                                <div>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <label className="block text-xs font-medium text-gray-700">Culturas</label>
+                                                        <Button
+                                                            type="button"
+                                                            variant="secondary"
+                                                            onClick={() => addEditCrop(harvestIndex)}
+                                                            className="text-xs px-2 py-1"
+                                                        >
+                                                            <Icon icon="mdi:plus" className="w-3 h-3" />
+                                                            Adicionar
+                                                        </Button>
+                                                    </div>
+                                                    {harvest.crops.map((crop, cropIndex) => (
+                                                        <div key={cropIndex} className="flex gap-2 mb-2">
+                                                            <InputPopUpAdmin
+                                                                value={crop}
+                                                                onChange={(e) => updateEditCrop(harvestIndex, cropIndex, e.target.value)}
+                                                                placeholder="Ex: Soja, Milho"
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="cancel"
+                                                                onClick={() => removeEditCrop(harvestIndex, cropIndex)}
+                                                                className="px-3"
+                                                            >
+                                                                <Icon icon="mdi:delete" className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                                    <Button
+                                        type="button"
+                                        variant="cancel"
+                                        onClick={() => {
+                                            resetEditFarm();
+                                            setEditHarvests([]);
+                                            setIsEditFarmModalOpen(false);
+                                            setSelectedFarm(null);
+                                        }}
+                                        disabled={processingFarm}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button type="submit" disabled={processingFarm}>
+                                        {processingFarm ? 'Salvando...' : 'Salvar'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </Form>
+                    </DynamicModal>
                 </Container>
             </div>
         </AdminLayout>
     );
 }
-
-

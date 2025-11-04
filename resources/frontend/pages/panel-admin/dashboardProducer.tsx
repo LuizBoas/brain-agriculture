@@ -32,18 +32,6 @@ interface ProducerPagination {
     };
 }
 
-interface FarmFormData {
-    name: string;
-    city: string;
-    state: string;
-    total_area: string;
-    arable_area: string;
-    vegetation_area: string;
-    harvests: Array<{
-        year: string;
-        name: string; // Nome da plantação/cultura
-    }>;
-}
 
 export default function DashboardProducer({
     auth,
@@ -51,26 +39,15 @@ export default function DashboardProducer({
 }: PagePropsData & ProducerPagination) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedProducer, setSelectedProducer] = useState<Producer | null>(null);
     const [deleteMessage, setDeleteMessage] = useState('');
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
-    const [farms, setFarms] = useState<FarmFormData[]>([{
-        name: '',
-        city: '',
-        state: '',
-        total_area: '',
-        arable_area: '',
-        vegetation_area: '',
-        harvests: []
-    }]);
 
     const { data, setData, post, put, reset, errors, processing } = useForm({
         document: '',
         document_type: 'CPF' as 'CPF' | 'CNPJ',
-        name: '',
-        farms: [] as FarmFormData[]
+        name: ''
     });
 
 
@@ -94,201 +71,29 @@ export default function DashboardProducer({
 
     const [onDeleteAction, setOnDeleteAction] = useState<() => void>(() => () => {});
 
-    const [loadingProducerData, setLoadingProducerData] = useState(false);
 
-    const handleEditProducer = async (producer: Producer) => {
+    const handleEditProducer = (producer: Producer) => {
         setSelectedProducer(producer);
-        setLoadingProducerData(true);
+        setData({
+            document: producer.document,
+            document_type: producer.document_type,
+            name: producer.name
+        });
         setIsEditModalOpen(true);
-        
-        // Carregar dados completos do produtor
-        try {
-            const response = await fetch(route('admin.producer.edit.form', { id: producer.id }), {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'same-origin'
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            console.log('Dados carregados do backend:', result);
-            
-            // Preencher dados do produtor
-            setData({
-                document: result.producer?.document || producer.document,
-                document_type: result.producer?.document_type || producer.document_type,
-                name: result.producer?.name || producer.name,
-                farms: []
-            });
-            
-            // Carregar fazendas com suas safras (agora com nome direto)
-            if (result.farms && Array.isArray(result.farms) && result.farms.length > 0) {
-                const farmsData = result.farms.map((farm: any) => {
-                    // Garantir que as safras sejam um array válido
-                    const harvestsData = (farm.harvests && Array.isArray(farm.harvests)) 
-                        ? farm.harvests.map((harvest: any) => ({
-                            year: harvest.year || '',
-                            name: harvest.name || '' // Nome da plantação/cultura
-                        }))
-                        : [];
-                    
-                    return {
-                        name: farm.name || '',
-                        city: farm.city || '',
-                        state: farm.state || '',
-                        total_area: farm.total_area?.toString() || '0',
-                        arable_area: farm.arable_area?.toString() || '0',
-                        vegetation_area: farm.vegetation_area?.toString() || '0',
-                        harvests: harvestsData
-                    };
-                });
-                
-                console.log('Fazendas processadas:', farmsData);
-                setFarms(farmsData);
-            } else {
-                // Se não há fazendas, iniciar com uma fazenda vazia
-                console.log('Nenhuma fazenda encontrada, inicializando com fazenda vazia');
-                setFarms([{
-                    name: '',
-                    city: '',
-                    state: '',
-                    total_area: '',
-                    arable_area: '',
-                    vegetation_area: '',
-                    harvests: []
-                }]);
-            }
-        } catch (error) {
-            console.error('Erro ao carregar dados do produtor:', error);
-            // Fallback: usar dados básicos
-            setData({
-                document: producer.document,
-                document_type: producer.document_type,
-                name: producer.name,
-                farms: []
-            });
-            setFarms([{
-                name: '',
-                city: '',
-                state: '',
-                total_area: '',
-                arable_area: '',
-                vegetation_area: '',
-                harvests: []
-            }]);
-        } finally {
-            setLoadingProducerData(false);
-        }
-    };
-
-    const addFarm = () => {
-        setFarms([...farms, {
-            name: '',
-            city: '',
-            state: '',
-            total_area: '',
-            arable_area: '',
-            vegetation_area: '',
-            harvests: []
-        }]);
-    };
-
-    const removeFarm = (index: number) => {
-        setFarms(farms.filter((_, i) => i !== index));
-    };
-
-    const updateFarm = (index: number, field: keyof FarmFormData, value: any) => {
-        const newFarms = [...farms];
-        newFarms[index] = { ...newFarms[index], [field]: value };
-        setFarms(newFarms);
-    };
-
-    const addHarvest = (farmIndex: number) => {
-        const newFarms = [...farms];
-        newFarms[farmIndex].harvests.push({ year: '', name: '' });
-        setFarms(newFarms);
-    };
-
-    const removeHarvest = (farmIndex: number, harvestIndex: number) => {
-        const newFarms = [...farms];
-        newFarms[farmIndex].harvests.splice(harvestIndex, 1);
-        setFarms(newFarms);
-    };
-
-    const updateHarvestYear = (farmIndex: number, harvestIndex: number, year: string) => {
-        const newFarms = [...farms];
-        newFarms[farmIndex].harvests[harvestIndex].year = year;
-        setFarms(newFarms);
-    };
-
-    const updateHarvestName = (farmIndex: number, harvestIndex: number, name: string) => {
-        const newFarms = [...farms];
-        newFarms[farmIndex].harvests[harvestIndex].name = name;
-        setFarms(newFarms);
     };
 
     const submitAddProducer = (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Preparar dados das fazendas para envio
-        const farmsData = farms
-            .map(farm => ({
-                name: farm.name?.trim() || '',
-                city: farm.city?.trim() || '',
-                state: farm.state?.trim() || '',
-                total_area: farm.total_area?.toString() || '0',
-                arable_area: farm.arable_area?.toString() || '0',
-                vegetation_area: farm.vegetation_area?.toString() || '0',
-                harvests: (farm.harvests || []).map(h => ({
-                    year: h.year?.trim() || '',
-                    name: h.name?.trim() || '' // Nome da plantação/cultura
-                })).filter(h => h.year.trim() !== '' && h.name.trim() !== '') // Remove safras sem ano ou nome
-            }))
-            .filter(farm => farm.name.trim() !== '' && farm.city.trim() !== '' && farm.state.trim() !== ''); // Remove fazendas incompletas
-
-        console.log('Dados sendo enviados:', {
-            document: data.document,
-            document_type: data.document_type,
-            name: data.name,
-            farms: farmsData
-        });
-
-        // Usar router.post diretamente para garantir que os dados sejam enviados corretamente
-        router.post(route('admin.producer.create'), {
-            document: data.document,
-            document_type: data.document_type,
-            name: data.name,
-            farms: farmsData
-        }, {
+        post(route('admin.producer.create'), {
             preserveScroll: true,
             preserveState: false,
             onSuccess: () => {
                 reset();
-                setFarms([{
-                    name: '',
-                    city: '',
-                    state: '',
-                    total_area: '',
-                    arable_area: '',
-                    vegetation_area: '',
-                    harvests: []
-                }]);
                 setIsAddModalOpen(false);
             },
             onError: (errors) => {
                 console.error('Erro ao criar produtor:', errors);
-                console.error('Dados sendo enviados:', {
-                    document: data.document,
-                    document_type: data.document_type,
-                    name: data.name,
-                    farms: farmsData
-                });
             }
         });
     };
@@ -297,67 +102,21 @@ export default function DashboardProducer({
         e.preventDefault();
         if (!selectedProducer) return;
 
-        // Preparar dados das fazendas para envio (mesma lógica do cadastro)
-        const farmsData = farms
-            .map(farm => ({
-                name: farm.name?.trim() || '',
-                city: farm.city?.trim() || '',
-                state: farm.state?.trim() || '',
-                total_area: farm.total_area?.toString() || '0',
-                arable_area: farm.arable_area?.toString() || '0',
-                vegetation_area: farm.vegetation_area?.toString() || '0',
-                harvests: (farm.harvests || []).map(h => ({
-                    year: h.year?.trim() || '',
-                    name: h.name?.trim() || '' // Nome da plantação/cultura
-                })).filter(h => h.year.trim() !== '' && h.name.trim() !== '') // Remove safras sem ano ou nome
-            }))
-            .filter(farm => farm.name.trim() !== '' && farm.city.trim() !== '' && farm.state.trim() !== ''); // Remove fazendas incompletas
-
-        console.log('Dados sendo enviados para edição:', {
-            document: data.document,
-            document_type: data.document_type,
-            name: data.name,
-            farms: farmsData
-        });
-
-        // Usar router.put diretamente para garantir que os dados sejam enviados corretamente
-        router.put(route('admin.producer.edit', { id: selectedProducer.id }), {
-            document: data.document,
-            document_type: data.document_type,
-            name: data.name,
-            farms: farmsData
-        }, {
+        put(route('admin.producer.edit', { id: selectedProducer.id }), {
             preserveScroll: true,
-            preserveState: false,
             onSuccess: () => {
                 reset();
-                setFarms([{
-                    name: '',
-                    city: '',
-                    state: '',
-                    total_area: '',
-                    arable_area: '',
-                    vegetation_area: '',
-                    harvests: []
-                }]);
                 setIsEditModalOpen(false);
-                setIsEditing(false);
                 setSelectedProducer(null);
             },
             onError: (errors) => {
                 console.error('Erro ao editar produtor:', errors);
-                console.error('Dados enviados:', {
-                    document: data.document,
-                    document_type: data.document_type,
-                    name: data.name,
-                    farms: farmsData
-                });
             }
         });
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('admin.dashboard.producer'), {
+        router.get(route('admin.admin.dashboard.producer'), {
             page,
             search,
             per_page: itemsPerPage
@@ -367,7 +126,7 @@ export default function DashboardProducer({
     const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newItemsPerPage = parseInt(e.target.value);
         setItemsPerPage(newItemsPerPage);
-        router.get(route('admin.dashboard.producer'), {
+        router.get(route('admin.admin.dashboard.producer'), {
             page: 1,
             search,
             per_page: newItemsPerPage
@@ -376,7 +135,7 @@ export default function DashboardProducer({
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            router.get(route('admin.dashboard.producer'), {
+            router.get(route('admin.admin.dashboard.producer'), {
                 search,
                 per_page: itemsPerPage
             }, { preserveState: true });
@@ -420,15 +179,6 @@ export default function DashboardProducer({
                         <Button
                             onClick={() => {
                                 reset();
-                                setFarms([{
-                                    name: '',
-                                    city: '',
-                                    state: '',
-                                    total_area: '',
-                                    arable_area: '',
-                                    vegetation_area: '',
-                                    harvests: []
-                                }]);
                                 setIsAddModalOpen(true);
                             }}
                             className="flex items-center gap-2"
@@ -481,7 +231,7 @@ export default function DashboardProducer({
                                                 <div className={`z-50`}>
                                                     {menuOpen === index && (
                                                         <ActionAdminPopup
-                                                            onView={() => router.visit(route('admin.dashboard.producer.detail', { id: producer.id }))}
+                                                            onView={() => router.visit(route('admin.admin.dashboard.producer.detail', { id: producer.id }))}
                                                             onEdit={() => handleEditProducer(producer)}
                                                             onDelete={() => handleDeleteProducer(producer)}
                                                             closeMenu={() => setMenuOpen(null)}
@@ -496,235 +246,49 @@ export default function DashboardProducer({
                         </CompleteTable>
                     </div>
 
-                    {/* Modal Adicionar - FORMULÁRIO COMPLETO */}
+                    {/* Modal Adicionar - APENAS DADOS DO PRODUTOR */}
                     <DynamicModal
                         isOpen={isAddModalOpen}
                         onClose={() => {
                             reset();
-                            setFarms([{
-                                name: '',
-                                city: '',
-                                state: '',
-                                total_area: '',
-                                arable_area: '',
-                                vegetation_area: '',
-                                harvests: []
-                            }]);
                             setIsAddModalOpen(false);
                         }}
                         title="Adicionar Produtor"
                     >
                         <Form validationErrors={errors} onSubmit={submitAddProducer}>
-                            <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
-                                {/* Dados do Produtor */}
-                                <div className="border-b border-gray-200 pb-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Dados do Produtor</h3>
-                                    
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Tipo de Documento
-                                            </label>
-                                            <select
-                                                value={data.document_type}
-                                                onChange={(e) => setData('document_type', e.target.value as 'CPF' | 'CNPJ')}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                                            >
-                                                <option value="CPF">CPF</option>
-                                                <option value="CNPJ">CNPJ</option>
-                                            </select>
-                                            {errors.document_type && (
-                                                <p className="mt-1 text-sm text-red-500">{errors.document_type}</p>
-                                            )}
-                                        </div>
-
-                                        <InputPopUpAdmin
-                                            label="Documento"
-                                            value={data.document}
-                                            onChange={(e) => setData('document', e.target.value)}
-                                            errorMessage={errors.document}
-                                            placeholder={data.document_type === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'}
-                                        />
-
-                                        <InputPopUpAdmin
-                                            label="Nome do Produtor"
-                                            value={data.name}
-                                            onChange={(e) => setData('name', e.target.value)}
-                                            errorMessage={errors.name}
-                                            placeholder="Nome completo"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Fazendas */}
+                            <div className="space-y-4">
                                 <div>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-semibold text-gray-900">Fazendas</h3>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={addFarm}
-                                            className="text-sm"
-                                        >
-                                            <Icon icon="mdi:plus" className="w-4 h-4 mr-1" />
-                                            Adicionar Fazenda
-                                        </Button>
-                                    </div>
-
-                                    {farms.map((farm, farmIndex) => (
-                                        <div key={farmIndex} className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h4 className="font-medium text-gray-700">Fazenda {farmIndex + 1}</h4>
-                                                {farms.length > 1 && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="cancel"
-                                                        onClick={() => removeFarm(farmIndex)}
-                                                        className="text-sm"
-                                                    >
-                                                        <Icon icon="mdi:delete" className="w-4 h-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <InputPopUpAdmin
-                                                    label="Nome da Fazenda"
-                                                    value={farm.name}
-                                                    onChange={(e) => updateFarm(farmIndex, 'name', e.target.value)}
-                                                    errorMessage={errors[`farms.${farmIndex}.name`]}
-                                                    placeholder="Nome da propriedade"
-                                                />
-
-                                                <InputPopUpAdmin
-                                                    label="Cidade"
-                                                    value={farm.city}
-                                                    onChange={(e) => updateFarm(farmIndex, 'city', e.target.value)}
-                                                    errorMessage={errors[`farms.${farmIndex}.city`]}
-                                                    placeholder="Cidade"
-                                                />
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                        Estado
-                                                    </label>
-                                                    <select
-                                                        value={farm.state}
-                                                        onChange={(e) => updateFarm(farmIndex, 'state', e.target.value)}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                                                    >
-                                                        <option value="">Selecione...</option>
-                                                        {states.map(state => (
-                                                            <option key={state} value={state}>{state}</option>
-                                                        ))}
-                                                    </select>
-                                                    {errors[`farms.${farmIndex}.state`] && (
-                                                        <p className="mt-1 text-sm text-red-500">{errors[`farms.${farmIndex}.state`]}</p>
-                                                    )}
-                                                </div>
-
-                                                <InputPopUpAdmin
-                                                    label="Área Total (hectares)"
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={farm.total_area}
-                                                    onChange={(e) => updateFarm(farmIndex, 'total_area', e.target.value)}
-                                                    errorMessage={errors[`farms.${farmIndex}.total_area`]}
-                                                    placeholder="0.00"
-                                                />
-
-                                                <InputPopUpAdmin
-                                                    label="Área Agricultável (hectares)"
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={farm.arable_area}
-                                                    onChange={(e) => updateFarm(farmIndex, 'arable_area', e.target.value)}
-                                                    errorMessage={errors[`farms.${farmIndex}.arable_area`]}
-                                                    placeholder="0.00"
-                                                />
-
-                                                <InputPopUpAdmin
-                                                    label="Área de Vegetação (hectares)"
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={farm.vegetation_area}
-                                                    onChange={(e) => updateFarm(farmIndex, 'vegetation_area', e.target.value)}
-                                                    errorMessage={errors[`farms.${farmIndex}.vegetation_area`]}
-                                                    placeholder="0.00"
-                                                />
-
-                                                {farm.vegetation_area && farm.arable_area && farm.total_area && (
-                                                    parseFloat(farm.arable_area) + parseFloat(farm.vegetation_area) > parseFloat(farm.total_area) && (
-                                                        <p className="text-sm text-red-500">
-                                                            A soma das áreas agricultável e vegetação não pode ultrapassar a área total
-                                                        </p>
-                                                    )
-                                                )}
-
-                                                {/* Safras */}
-                                                <div className="mt-4 pt-4 border-t border-gray-200">
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <h5 className="font-medium text-gray-700">Safras</h5>
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            onClick={() => addHarvest(farmIndex)}
-                                                            className="text-xs"
-                                                        >
-                                                            <Icon icon="mdi:plus" className="w-3 h-3 mr-1" />
-                                                            Adicionar Safra
-                                                        </Button>
-                                                    </div>
-
-                                                    {farm.harvests.map((harvest, harvestIndex) => (
-                                                        <div key={harvestIndex} className="mb-3 p-3 bg-white rounded border border-gray-200">
-                                                            <div className="flex items-center justify-between mb-2">
-                                                                <span className="text-sm font-medium text-gray-600">Safra {harvestIndex + 1}</span>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="cancel"
-                                                                    onClick={() => removeHarvest(farmIndex, harvestIndex)}
-                                                                    className="text-xs"
-                                                                >
-                                                                    <Icon icon="mdi:delete" className="w-3 h-3" />
-                                                                </Button>
-                                                            </div>
-
-                                                            <InputPopUpAdmin
-                                                                label="Ano da Safra"
-                                                                value={harvest.year}
-                                                                onChange={(e) => updateHarvestYear(farmIndex, harvestIndex, e.target.value)}
-                                                                errorMessage={errors[`farms.${farmIndex}.harvests.${harvestIndex}.year`]}
-                                                                placeholder="Ex: 2024"
-                                                            />
-
-                                                            <InputPopUpAdmin
-                                                                label="Nome da Plantação/Cultura"
-                                                                value={harvest.name}
-                                                                onChange={(e) => updateHarvestName(farmIndex, harvestIndex, e.target.value)}
-                                                                errorMessage={errors[`farms.${farmIndex}.harvests.${harvestIndex}.name`]}
-                                                                placeholder="Ex: Soja, Milho, Café"
-                                                            />
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    {(errors.farms || (typeof errors.farms === 'string' && errors.farms)) && (
-                                        <p className="mt-2 text-sm text-red-500">
-                                            {typeof errors.farms === 'string' ? errors.farms : 'Erro ao cadastrar fazendas'}
-                                        </p>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Tipo de Documento
+                                    </label>
+                                    <select
+                                        value={data.document_type}
+                                        onChange={(e) => setData('document_type', e.target.value as 'CPF' | 'CNPJ')}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                    >
+                                        <option value="CPF">CPF</option>
+                                        <option value="CNPJ">CNPJ</option>
+                                    </select>
+                                    {errors.document_type && (
+                                        <p className="mt-1 text-sm text-red-500">{errors.document_type}</p>
                                     )}
-                                    
-                                    {/* Erros gerais não relacionados a campos específicos */}
-                                    {Object.keys(errors).filter(key => !key.includes('.') && !['document', 'document_type', 'name', 'farms'].includes(key)).map(key => (
-                                        <p key={key} className="mt-2 text-sm text-red-500">
-                                            {errors[key]}
-                                        </p>
-                                    ))}
                                 </div>
+
+                                <InputPopUpAdmin
+                                    label="Documento"
+                                    value={data.document}
+                                    onChange={(e) => setData('document', e.target.value)}
+                                    errorMessage={errors.document}
+                                    placeholder={data.document_type === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'}
+                                />
+
+                                <InputPopUpAdmin
+                                    label="Nome do Produtor"
+                                    value={data.name}
+                                    onChange={(e) => setData('name', e.target.value)}
+                                    errorMessage={errors.name}
+                                    placeholder="Nome completo"
+                                />
 
                                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                                     <Button
@@ -732,15 +296,6 @@ export default function DashboardProducer({
                                         variant="cancel"
                                         onClick={() => {
                                             reset();
-                                            setFarms([{
-                                                name: '',
-                                                city: '',
-                                                state: '',
-                                                total_area: '',
-                                                arable_area: '',
-                                                vegetation_area: '',
-                                                harvests: []
-                                            }]);
                                             setIsAddModalOpen(false);
                                         }}
                                         disabled={processing}
@@ -755,246 +310,50 @@ export default function DashboardProducer({
                         </Form>
                     </DynamicModal>
 
-                    {/* Modal Editar - FORMULÁRIO COMPLETO */}
+                    {/* Modal Editar - APENAS DADOS DO PRODUTOR */}
                     <DynamicModal
                         isOpen={isEditModalOpen}
                         onClose={() => {
                             reset();
-                            setFarms([{
-                                name: '',
-                                city: '',
-                                state: '',
-                                total_area: '',
-                                arable_area: '',
-                                vegetation_area: '',
-                                harvests: []
-                            }]);
                             setIsEditModalOpen(false);
-                            setIsEditing(false);
                             setSelectedProducer(null);
-                            setLoadingProducerData(false);
                         }}
                         title="Editar Produtor"
                     >
-                        {loadingProducerData ? (
-                            <div className="flex items-center justify-center py-12">
-                                <div className="text-center">
-                                    <Icon icon="line-md:loading-twotone-loop" className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
-                                    <p className="text-gray-600">Carregando dados do produtor...</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <Form validationErrors={errors} onSubmit={submitEditProducer}>
-                                <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
-                                {/* Dados do Produtor */}
-                                <div className="border-b border-gray-200 pb-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Dados do Produtor</h3>
-                                    
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Tipo de Documento
-                                            </label>
-                                            <select
-                                                value={data.document_type}
-                                                onChange={(e) => setData('document_type', e.target.value as 'CPF' | 'CNPJ')}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                                            >
-                                                <option value="CPF">CPF</option>
-                                                <option value="CNPJ">CNPJ</option>
-                                            </select>
-                                            {errors.document_type && (
-                                                <p className="mt-1 text-sm text-red-500">{errors.document_type}</p>
-                                            )}
-                                        </div>
-
-                                        <InputPopUpAdmin
-                                            label="Documento"
-                                            value={data.document}
-                                            onChange={(e) => setData('document', e.target.value)}
-                                            errorMessage={errors.document}
-                                            placeholder={data.document_type === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'}
-                                        />
-
-                                        <InputPopUpAdmin
-                                            label="Nome do Produtor"
-                                            value={data.name}
-                                            onChange={(e) => setData('name', e.target.value)}
-                                            errorMessage={errors.name}
-                                            placeholder="Nome completo"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Fazendas */}
+                        <Form validationErrors={errors} onSubmit={submitEditProducer}>
+                            <div className="space-y-4">
                                 <div>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-semibold text-gray-900">Fazendas</h3>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={addFarm}
-                                            className="text-sm"
-                                        >
-                                            <Icon icon="mdi:plus" className="w-4 h-4 mr-1" />
-                                            Adicionar Fazenda
-                                        </Button>
-                                    </div>
-
-                                    {farms.map((farm, farmIndex) => (
-                                        <div key={farmIndex} className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h4 className="font-medium text-gray-700">Fazenda {farmIndex + 1}</h4>
-                                                {farms.length > 1 && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="cancel"
-                                                        onClick={() => removeFarm(farmIndex)}
-                                                        className="text-sm"
-                                                    >
-                                                        <Icon icon="mdi:delete" className="w-4 h-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <InputPopUpAdmin
-                                                    label="Nome da Fazenda"
-                                                    value={farm.name}
-                                                    onChange={(e) => updateFarm(farmIndex, 'name', e.target.value)}
-                                                    errorMessage={errors[`farms.${farmIndex}.name`]}
-                                                    placeholder="Nome da propriedade"
-                                                />
-
-                                                <InputPopUpAdmin
-                                                    label="Cidade"
-                                                    value={farm.city}
-                                                    onChange={(e) => updateFarm(farmIndex, 'city', e.target.value)}
-                                                    errorMessage={errors[`farms.${farmIndex}.city`]}
-                                                    placeholder="Cidade"
-                                                />
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                        Estado
-                                                    </label>
-                                                    <select
-                                                        value={farm.state}
-                                                        onChange={(e) => updateFarm(farmIndex, 'state', e.target.value)}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                                                    >
-                                                        <option value="">Selecione...</option>
-                                                        {states.map(state => (
-                                                            <option key={state} value={state}>{state}</option>
-                                                        ))}
-                                                    </select>
-                                                    {errors[`farms.${farmIndex}.state`] && (
-                                                        <p className="mt-1 text-sm text-red-500">{errors[`farms.${farmIndex}.state`]}</p>
-                                                    )}
-                                                </div>
-
-                                                <InputPopUpAdmin
-                                                    label="Área Total (hectares)"
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={farm.total_area}
-                                                    onChange={(e) => updateFarm(farmIndex, 'total_area', e.target.value)}
-                                                    errorMessage={errors[`farms.${farmIndex}.total_area`]}
-                                                    placeholder="0.00"
-                                                />
-
-                                                <InputPopUpAdmin
-                                                    label="Área Agricultável (hectares)"
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={farm.arable_area}
-                                                    onChange={(e) => updateFarm(farmIndex, 'arable_area', e.target.value)}
-                                                    errorMessage={errors[`farms.${farmIndex}.arable_area`]}
-                                                    placeholder="0.00"
-                                                />
-
-                                                <InputPopUpAdmin
-                                                    label="Área de Vegetação (hectares)"
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={farm.vegetation_area}
-                                                    onChange={(e) => updateFarm(farmIndex, 'vegetation_area', e.target.value)}
-                                                    errorMessage={errors[`farms.${farmIndex}.vegetation_area`]}
-                                                    placeholder="0.00"
-                                                />
-
-                                                {farm.vegetation_area && farm.arable_area && farm.total_area && (
-                                                    parseFloat(farm.arable_area) + parseFloat(farm.vegetation_area) > parseFloat(farm.total_area) && (
-                                                        <p className="text-sm text-red-500">
-                                                            A soma das áreas agricultável e vegetação não pode ultrapassar a área total
-                                                        </p>
-                                                    )
-                                                )}
-
-                                                {/* Safras */}
-                                                <div className="mt-4 pt-4 border-t border-gray-200">
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <h5 className="font-medium text-gray-700">Safras</h5>
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            onClick={() => addHarvest(farmIndex)}
-                                                            className="text-xs"
-                                                        >
-                                                            <Icon icon="mdi:plus" className="w-3 h-3 mr-1" />
-                                                            Adicionar Safra
-                                                        </Button>
-                                                    </div>
-
-                                                    {farm.harvests.map((harvest, harvestIndex) => (
-                                                        <div key={harvestIndex} className="mb-3 p-3 bg-white rounded border border-gray-200">
-                                                            <div className="flex items-center justify-between mb-2">
-                                                                <span className="text-sm font-medium text-gray-600">Safra {harvestIndex + 1}</span>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="cancel"
-                                                                    onClick={() => removeHarvest(farmIndex, harvestIndex)}
-                                                                    className="text-xs"
-                                                                >
-                                                                    <Icon icon="mdi:delete" className="w-3 h-3" />
-                                                                </Button>
-                                                            </div>
-
-                                                            <InputPopUpAdmin
-                                                                label="Ano da Safra"
-                                                                value={harvest.year}
-                                                                onChange={(e) => updateHarvestYear(farmIndex, harvestIndex, e.target.value)}
-                                                                errorMessage={errors[`farms.${farmIndex}.harvests.${harvestIndex}.year`]}
-                                                                placeholder="Ex: 2024"
-                                                            />
-
-                                                            <InputPopUpAdmin
-                                                                label="Nome da Plantação/Cultura"
-                                                                value={harvest.name}
-                                                                onChange={(e) => updateHarvestName(farmIndex, harvestIndex, e.target.value)}
-                                                                errorMessage={errors[`farms.${farmIndex}.harvests.${harvestIndex}.name`]}
-                                                                placeholder="Ex: Soja, Milho, Café"
-                                                            />
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Tipo de Documento
+                                    </label>
+                                    <select
+                                        value={data.document_type}
+                                        onChange={(e) => setData('document_type', e.target.value as 'CPF' | 'CNPJ')}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                    >
+                                        <option value="CPF">CPF</option>
+                                        <option value="CNPJ">CNPJ</option>
+                                    </select>
+                                    {errors.document_type && (
+                                        <p className="mt-1 text-sm text-red-500">{errors.document_type}</p>
+                                    )}
                                 </div>
 
-                                {/* Erros gerais */}
-                                {Object.keys(errors).filter(key => !key.includes('.')).length > 0 && (
-                                    <div className="p-3 bg-red-50 border border-red-200 rounded">
-                                        {Object.keys(errors)
-                                            .filter(key => !key.includes('.'))
-                                            .map(key => (
-                                                <p key={key} className="mt-2 text-sm text-red-500">
-                                                    {errors[key]}
-                                                </p>
-                                            ))}
-                                    </div>
-                                )}
+                                <InputPopUpAdmin
+                                    label="Documento"
+                                    value={data.document}
+                                    onChange={(e) => setData('document', e.target.value)}
+                                    errorMessage={errors.document}
+                                    placeholder={data.document_type === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'}
+                                />
+
+                                <InputPopUpAdmin
+                                    label="Nome do Produtor"
+                                    value={data.name}
+                                    onChange={(e) => setData('name', e.target.value)}
+                                    errorMessage={errors.name}
+                                    placeholder="Nome completo"
+                                />
 
                                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                                     <Button
@@ -1002,17 +361,7 @@ export default function DashboardProducer({
                                         variant="cancel"
                                         onClick={() => {
                                             reset();
-                                            setFarms([{
-                                                name: '',
-                                                city: '',
-                                                state: '',
-                                                total_area: '',
-                                                arable_area: '',
-                                                vegetation_area: '',
-                                                harvests: []
-                                            }]);
                                             setIsEditModalOpen(false);
-                                            setIsEditing(false);
                                             setSelectedProducer(null);
                                         }}
                                         disabled={processing}
@@ -1025,7 +374,6 @@ export default function DashboardProducer({
                                 </div>
                             </div>
                         </Form>
-                        )}
                     </DynamicModal>
 
                     {/* Modal Excluir */}

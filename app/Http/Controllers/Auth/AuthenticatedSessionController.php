@@ -37,7 +37,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         // Redirecionar diretamente para o dashboard após login
-        return redirect(route("admin.dashboard"));
+        return redirect(route("admin.admin.dashboard"));
     }
 
     /**

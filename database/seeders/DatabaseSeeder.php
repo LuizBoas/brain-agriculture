@@ -43,3 +43,4 @@ class DatabaseSeeder extends Seeder
         $this->command->info('Senha: password');
     }
 }
+

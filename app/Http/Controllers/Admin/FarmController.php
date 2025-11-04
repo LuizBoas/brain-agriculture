@@ -5,17 +5,22 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Producer;
 use App\Models\Farm;
-use App\Models\Harvest;
-// use App\Models\Crop; // Removido - não usado mais (nome da cultura agora está em harvests.name)
+use App\Services\FarmService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class FarmController extends Controller
 {
+    protected FarmService $farmService;
+
+    public function __construct(FarmService $farmService)
+    {
+        $this->farmService = $farmService;
+    }
     public function index(Request $request)
     {
-        $query = Farm::with(['producer'])->withCount('harvests');
+        $query = Farm::with(['producer', 'harvests.crops'])->withCount('harvests');
 
         // Busca por nome da fazenda, cidade, estado ou nome do produtor
         if ($request->has('search') && $request->search) {
@@ -30,118 +35,45 @@ class FarmController extends Controller
             });
         }
 
-        $perPage = $request->get('per_page', 15);
+        $perPage = $request->get('per_page', 10);
         $farms = $query->paginate($perPage);
+
+        // Buscar produtores para o select (se solicitado)
+        $producers = Producer::select('id', 'name', 'document', 'document_type')->get();
 
         return Inertia::render('panel-admin/dashboardFarm', [
             'farms' => $farms,
+            'producers' => $producers,
         ]);
     }
 
     public function store(Request $request, $producerId)
     {
-        $producer = Producer::findOrFail($producerId);
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
-            'state' => 'required|string|size:2',
-            'total_area' => 'required|numeric|min:0',
-            'arable_area' => 'required|numeric|min:0',
-            'vegetation_area' => 'required|numeric|min:0',
-            'harvests' => 'nullable|array',
-            'harvests.*.year' => 'required|string',
-            'harvests.*.name' => 'required|string|max:255', // Nome da plantação/cultura
-        ]);
-
-        // Validar soma das áreas
-        $totalArea = (float) $request->total_area;
-        $arableArea = (float) $request->arable_area;
-        $vegetationArea = (float) $request->vegetation_area;
-
-        if (($arableArea + $vegetationArea) > $totalArea) {
-            return back()->withErrors(['farms' => 'A soma das áreas agricultável e vegetação não pode ultrapassar a área total']);
+        try {
+            $producer = Producer::findOrFail($producerId);
+            $this->farmService->createFarm($producer->id, $request->all());
+            return redirect()->route('admin.admin.dashboard.producer.detail', $producer->id)->with('success', 'Fazenda cadastrada com sucesso!');
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
         }
-
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
-
-        $farm = Farm::create([
-            'producer_id' => $producer->id,
-            'name' => $request->name,
-            'city' => $request->city,
-            'state' => $request->state,
-            'total_area' => $totalArea,
-            'arable_area' => $arableArea,
-            'vegetation_area' => $vegetationArea,
-        ]);
-
-        // Criar safras (agora com nome direto na tabela)
-        if ($request->has('harvests') && is_array($request->harvests)) {
-            foreach ($request->harvests as $harvestData) {
-                // Validar que a safra tem ano e nome
-                if (empty($harvestData['year']) || empty($harvestData['name'])) {
-                    continue; // Pula safras sem ano ou nome
-                }
-
-                Harvest::create([
-                    'farm_id' => $farm->id,
-                    'year' => trim($harvestData['year']),
-                    'name' => trim($harvestData['name']), // Nome da plantação/cultura
-                ]);
-            }
-        }
-
-        return redirect()->route('admin.dashboard.producer.detail', $producer->id)->with('success', 'Fazenda cadastrada com sucesso!');
     }
 
     public function update(Request $request, $producerId, $farmId)
     {
-        $farm = Farm::where('producer_id', $producerId)->findOrFail($farmId);
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
-            'state' => 'required|string|size:2',
-            'total_area' => 'required|numeric|min:0',
-            'arable_area' => 'required|numeric|min:0',
-            'vegetation_area' => 'required|numeric|min:0',
-        ]);
-
-        $totalArea = (float) $request->total_area;
-        $arableArea = (float) $request->arable_area;
-        $vegetationArea = (float) $request->vegetation_area;
-
-        if (($arableArea + $vegetationArea) > $totalArea) {
-            return back()->withErrors(['farms' => 'A soma das áreas agricultável e vegetação não pode ultrapassar a área total']);
+        try {
+            $farm = Farm::where('producer_id', $producerId)->findOrFail($farmId);
+            $this->farmService->updateFarm($farm, $request->all());
+            return redirect()->route('admin.admin.dashboard.farm')->with('success', 'Fazenda atualizada com sucesso!');
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
         }
-
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
-
-        $farm->update([
-            'name' => $request->name,
-            'city' => $request->city,
-            'state' => $request->state,
-            'total_area' => $totalArea,
-            'arable_area' => $arableArea,
-            'vegetation_area' => $vegetationArea,
-        ]);
-
-        return redirect()->route('admin.dashboard.producer.detail', $producerId)->with('success', 'Fazenda atualizada com sucesso!');
     }
 
     public function destroy($producerId, $farmId)
     {
         $farm = Farm::where('producer_id', $producerId)->findOrFail($farmId);
-        
-        // Deletar em cascata (harvests)
-        $farm->harvests()->delete();
-        $farm->delete();
-
-        return redirect()->route('admin.dashboard.producer.detail', $producerId)->with('success', 'Fazenda excluída com sucesso!');
+        $this->farmService->deleteFarm($farm);
+        return redirect()->route('admin.admin.dashboard.farm')->with('success', 'Fazenda excluída com sucesso!');
     }
 }
 

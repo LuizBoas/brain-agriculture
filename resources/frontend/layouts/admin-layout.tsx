@@ -27,27 +27,27 @@ const fullMenuSections: MenuSection[] = [
         items: [
             {
                 name: 'Dashboard',
-                href: 'admin.dashboard',
+                href: 'admin.admin.dashboard',
                 icon: 'material-symbols:dashboard-outline',
             },
             {
                 name: 'Produtores',
-                href: 'admin.dashboard.producer',
+                href: 'admin.admin.dashboard.producer',
                 icon: 'game-icons:farmer',    
             },
             {
                 name: 'Fazendas',
-                href: 'admin.dashboard.farm',
+                href: 'admin.admin.dashboard.farm',
                 icon: 'lucide-lab:farm',
             },
             {
                 name: 'Colheitas',
-                href: 'admin.dashboard.harvest',
+                href: 'admin.admin.dashboard.harvest',
                 icon: 'mdi:flower',
             },
             {
                 name: 'Administradores',
-                href: 'admin.dashboard.admin',
+                href: 'admin.admin.dashboard.admin',
                 icon: 'mdi:account-supervisor',
             }
         ]

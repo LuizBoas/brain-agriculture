@@ -7,31 +7,32 @@ use App\Http\Controllers\Admin\HarvestController;
 use App\Http\Controllers\Admin\AdminController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', 'admin'])->group(function () {
+Route::middleware(['web', 'auth', 'admin'])->prefix('admin')->group(function () {
     // Dashboard principal
-    Route::get('/admin/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('admin.dashboard');
 
     // Produtores
-    Route::get('/admin/dashboard/producer', [ProducerController::class, 'index'])->name('dashboard.producer');
-    Route::get('/admin/dashboard/producer/{id}', [ProducerController::class, 'show'])->name('dashboard.producer.detail');
-    Route::get('/admin/producer/{id}/edit', [ProducerController::class, 'edit'])->name('producer.edit.form');
-    Route::post('/admin/producer', [ProducerController::class, 'store'])->name('producer.create');
-    Route::put('/admin/producer/{id}', [ProducerController::class, 'update'])->name('producer.edit');
-    Route::delete('/admin/producer/{id}', [ProducerController::class, 'destroy'])->name('producer.delete');
+    Route::get('/dashboard/producer', [ProducerController::class, 'index'])->name('admin.dashboard.producer');
+    Route::get('/dashboard/producer/{id}', [ProducerController::class, 'show'])->name('admin.dashboard.producer.detail');
+    Route::get('/producer/{id}/edit', [ProducerController::class, 'edit'])->name('admin.producer.edit.form');
+    Route::post('/producer', [ProducerController::class, 'store'])->name('admin.producer.create');
+    Route::put('/producer/{id}', [ProducerController::class, 'update'])->name('admin.producer.edit');
+    Route::delete('/producer/{id}', [ProducerController::class, 'destroy'])->name('admin.producer.delete');
 
     // Fazendas
-    Route::get('/admin/dashboard/farm', [FarmController::class, 'index'])->name('dashboard.farm');
-    Route::post('/admin/producer/{producerId}/farm', [FarmController::class, 'store'])->name('farm.create');
-    Route::put('/admin/producer/{producerId}/farm/{farmId}', [FarmController::class, 'update'])->name('farm.edit');
-    Route::delete('/admin/producer/{producerId}/farm/{farmId}', [FarmController::class, 'destroy'])->name('farm.delete');
+    Route::get('/dashboard/farm', [FarmController::class, 'index'])->name('admin.dashboard.farm');
+    Route::post('/producer/{producerId}/farm', [FarmController::class, 'store'])->name('admin.farm.create');
+    Route::put('/producer/{producerId}/farm/{farmId}', [FarmController::class, 'update'])->name('admin.farm.edit');
+    Route::delete('/producer/{producerId}/farm/{farmId}', [FarmController::class, 'destroy'])->name('admin.farm.delete');
 
-    // Colheitas
-    Route::get('/admin/dashboard/harvest', [HarvestController::class, 'index'])->name('dashboard.harvest');
+    // Safras
+    Route::get('/dashboard/harvest', [HarvestController::class, 'index'])->name('admin.dashboard.harvest');
+    Route::put('/harvest/{id}', [HarvestController::class, 'update'])->name('admin.harvest.update');
 
     // Administradores
-    Route::get('/admin/dashboard/admin', [AdminController::class, 'index'])->name('dashboard.admin');
-    Route::post('/admin/admin', [AdminController::class, 'store'])->name('create');
-    Route::put('/admin/admin/{id}', [AdminController::class, 'update'])->name('edit');
-    Route::delete('/admin/admin/{id}', [AdminController::class, 'destroy'])->name('delete');
+    Route::get('/dashboard/admin', [AdminController::class, 'index'])->name('admin.dashboard.admin');
+    Route::post('/admin', [AdminController::class, 'store'])->name('admin.create');
+    Route::put('/admin/{id}', [AdminController::class, 'update'])->name('admin.edit');
+    Route::delete('/admin/{id}', [AdminController::class, 'destroy'])->name('admin.delete');
 });
 

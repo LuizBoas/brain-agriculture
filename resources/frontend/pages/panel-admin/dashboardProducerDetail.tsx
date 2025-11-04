@@ -11,6 +11,17 @@ import { InputPopUpAdmin } from '@/components/common/field';
 import { Form } from '@/components/common/form';
 import { useForm } from '@inertiajs/react';
 
+interface Crop {
+    id: string;
+    name: string;
+}
+
+interface Harvest {
+    id: string;
+    year: string;
+    crops?: Crop[];
+}
+
 interface Farm {
     id: string;
     name: string;
@@ -19,11 +30,7 @@ interface Farm {
     total_area: number;
     arable_area: number;
     vegetation_area: number;
-    harvests: Array<{
-        id: string;
-        year: string;
-        name: string; // Nome da plantação/cultura
-    }>;
+    harvests: Harvest[];
 }
 
 interface Producer {
@@ -46,8 +53,6 @@ export default function DashboardProducerDetail({
     producer
 }: PagePropsData & { producer: Producer }) {
     const [isAddFarmModalOpen, setIsAddFarmModalOpen] = useState(false);
-    const [isEditFarmModalOpen, setIsEditFarmModalOpen] = useState(false);
-    const [selectedFarm, setSelectedFarm] = useState<Farm | null>(null);
     const [isFarmsOpen, setIsFarmsOpen] = useState(true);
 
     const { data, setData, post, reset, errors } = useForm({
@@ -56,11 +61,7 @@ export default function DashboardProducerDetail({
         state: '',
         total_area: '',
         arable_area: '',
-        vegetation_area: '',
-        harvests: [] as Array<{
-            year: string;
-            name: string; // Nome da plantação/cultura
-        }>
+        vegetation_area: ''
     });
 
     const formatDocument = (document: string, type: string) => {
@@ -74,17 +75,6 @@ export default function DashboardProducerDetail({
 
     const submitAddFarm = (e: React.FormEvent) => {
         e.preventDefault();
-        
-        // Validar soma das áreas
-        const totalArea = parseFloat(data.total_area);
-        const arableArea = parseFloat(data.arable_area);
-        const vegetationArea = parseFloat(data.vegetation_area);
-
-        if (arableArea + vegetationArea > totalArea) {
-            alert('A soma das áreas agricultável e vegetação não pode ultrapassar a área total');
-            return;
-        }
-
         post(route('admin.farm.create', { producerId: producer.id }), {
             preserveScroll: true,
             onSuccess: () => {
@@ -110,7 +100,7 @@ export default function DashboardProducerDetail({
                         variant="outline"
                         size="icon"
                         className="rounded-full"
-                        onClick={() => router.visit(route('admin.dashboard.producer'))}
+                        onClick={() => router.visit(route('admin.admin.dashboard.producer'))}
                     >
                         <Icon icon="bitcoin-icons:arrow-left-outline" className="w-6 h-6" />
                     </Button>
@@ -231,16 +221,6 @@ export default function DashboardProducerDetail({
                                     />
                                 )}
                             </div>
-                            <Button
-                                onClick={() => {
-                                    reset();
-                                    setIsAddFarmModalOpen(true);
-                                }}
-                                className="ml-4 flex items-center gap-2"
-                            >
-                                <Icon icon="mdi:plus" className="w-5 h-5" />
-                                Adicionar Fazenda
-                            </Button>
                         </div>
 
                         <p className="text-lg text-gray-600">
@@ -313,10 +293,16 @@ export default function DashboardProducerDetail({
                                                                 <p className="mb-1 font-medium text-gray-800">
                                                                     Safra {harvest.year}
                                                                 </p>
-                                                                {harvest.name && (
-                                                                    <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded inline-block">
-                                                                        {harvest.name}
-                                                                    </span>
+                                                                {harvest.crops && harvest.crops.length > 0 ? (
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {harvest.crops.map((crop, idx) => (
+                                                                            <span key={crop.id || idx} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded inline-block">
+                                                                                {crop.name}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-gray-400 italic text-xs">Sem culturas</span>
                                                                 )}
                                                             </div>
                                                         ))}
