@@ -1,6 +1,6 @@
 import { DeleteModal } from '@/components/admin-panel/delete-modal';
 import { AdminLayout } from '@/layouts/admin-layout';
-import { PagePropsData } from '@/types';
+import { AuthData } from '@/types';
 import { Icon } from '@iconify/react';
 import { useEffect, useState } from 'react';
 import { ActionAdminPopup } from '@/components/admin-panel/action-admin-popup';
@@ -33,7 +33,7 @@ interface AdminPagination {
 export default function DashboardAdmin({
     auth,
     admins
-}: PagePropsData & AdminPagination) {
+}: { auth: AuthData } & AdminPagination) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);

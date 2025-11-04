@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Malico\LaravelNanoid\HasNanoids;
 
 class Farm extends Model
 {
-    use HasFactory, HasNanoids;
+    use HasFactory, HasNanoids, SoftDeletes;
 
     protected $table = 'farms';
     protected $nanoidPrefix = 'farm';

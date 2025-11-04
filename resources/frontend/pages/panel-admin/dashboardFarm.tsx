@@ -13,6 +13,7 @@ import { Form } from '@/components/common/form';
 import { ActionAdminPopup } from '@/components/admin-panel/action-admin-popup';
 import { CitySelect, Select } from '@/components/common/form-fields';
 import { getStatesForSelect } from '@/data/geographic-data';
+import { DeleteModal } from '@/components/admin-panel/delete-modal';
 
 interface Crop {
     id: string;
@@ -69,11 +70,14 @@ export default function DashboardFarm({
     const [itemsPerPage, setItemsPerPage] = useState(farms.per_page);
     const [isAddFarmModalOpen, setIsAddFarmModalOpen] = useState(false);
     const [isEditFarmModalOpen, setIsEditFarmModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedFarm, setSelectedFarm] = useState<Farm | null>(null);
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
     const [editHarvests, setEditHarvests] = useState<Array<{ year: string; crops: string[] }>>([]);
     const [addHarvests, setAddHarvests] = useState<Array<{ year: string; crops: string[] }>>([]);
     const [producerIdError, setProducerIdError] = useState<string | undefined>(undefined);
+    const [deleteMessage, setDeleteMessage] = useState('');
+    const [onDeleteAction, setOnDeleteAction] = useState<() => void>(() => () => {});
 
     // Form para adicionar fazenda
     const { data: addFarmData, setData: setAddFarmData, post: postFarm, reset: resetAddFarm, errors: addFarmErrors, processing: processingAddFarm } = useForm({
@@ -97,6 +101,9 @@ export default function DashboardFarm({
         vegetation_area: '',
         harvests: [] as Array<{ year: string; crops: string[] }>
     });
+
+    // Form para deletar fazenda
+    const { delete: deleteFarm } = useForm();
 
     // Helper para pegar a primeira mensagem de erro (caso seja array)
     const getErrorMessage = (errors: any, field: string): string | undefined => {
@@ -203,6 +210,20 @@ export default function DashboardFarm({
         setAddHarvests([]);
         setProducerIdError(undefined);
         setIsAddFarmModalOpen(true);
+    };
+
+    const handleDeleteFarm = (farm: Farm) => {
+        setSelectedFarm(farm);
+        setDeleteMessage(`Tem certeza que deseja excluir a fazenda "${farm.name}"? Esta ação excluirá permanentemente (soft delete) a fazenda, todas as colheitas e todas as safras (culturas) relacionadas.`);
+        setOnDeleteAction(() => () => {
+            deleteFarm(route('admin.admin.farm.delete', { producerId: farm.producer.id, farmId: farm.id }), {
+                onSuccess: () => {
+                    setIsDeleteModalOpen(false);
+                    router.reload();
+                }
+            });
+        });
+        setIsDeleteModalOpen(true);
     };
 
     const submitAddFarm = (e: React.FormEvent) => {
@@ -395,6 +416,7 @@ export default function DashboardFarm({
                                                     {menuOpen === index && (
                                                         <ActionAdminPopup
                                                             onEdit={() => handleEditFarm(farm)}
+                                                            onDelete={() => handleDeleteFarm(farm)}
                                                             closeMenu={() => setMenuOpen(null)}
                                                         />
                                                     )}
@@ -764,6 +786,14 @@ export default function DashboardFarm({
                             </div>
                         </Form>
                     </DynamicModal>
+
+                    {/* Modal Excluir */}
+                    <DeleteModal
+                        isOpen={isDeleteModalOpen}
+                        onClose={() => setIsDeleteModalOpen(false)}
+                        onConfirm={onDeleteAction}
+                        message={deleteMessage}
+                    />
                 </Container>
             </div>
         </AdminLayout>

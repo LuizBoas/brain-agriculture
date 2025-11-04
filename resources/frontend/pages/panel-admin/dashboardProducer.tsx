@@ -1,6 +1,6 @@
 import { DeleteModal } from '@/components/admin-panel/delete-modal';
 import { AdminLayout } from '@/layouts/admin-layout';
-import { PagePropsData } from '@/types';
+import { AuthData } from '@/types';
 import { Icon } from '@iconify/react';
 import { useEffect, useState } from 'react';
 import { ActionAdminPopup } from '@/components/admin-panel/action-admin-popup';
@@ -36,7 +36,7 @@ interface ProducerPagination {
 export default function DashboardProducer({
     auth,
     producers
-}: PagePropsData & ProducerPagination) {
+}: { auth: AuthData } & ProducerPagination) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -58,7 +58,7 @@ export default function DashboardProducer({
 
     const handleDeleteProducer = (producer: Producer) => {
         setSelectedProducer(producer);
-        setDeleteMessage(`Tem certeza que deseja excluir o produtor "${producer.name}"? Todas as fazendas associadas também serão excluídas.`);
+        setDeleteMessage(`Tem certeza que deseja excluir o produtor "${producer.name}"? Esta ação excluirá permanentemente o produtor, todas as fazendas associadas, todas as colheitas e todas as safras (culturas) relacionadas.`);
         setOnDeleteAction(() => () => {
             deleteProducer(route('admin.admin.producer.delete', { id: producer.id }), {
                 onSuccess: () => {
@@ -82,7 +82,7 @@ export default function DashboardProducer({
         setIsEditModalOpen(true);
     };
 
-    const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         // Remove todos os caracteres não numéricos
         const numericValue = e.target.value.replace(/\D/g, '');
         
@@ -228,7 +228,7 @@ export default function DashboardProducer({
                             itemsPerPage={itemsPerPage}
                         >
                             <tbody>
-                                {producers.data?.map((producer, index) => (
+                                {producers.data?.map((producer: Producer, index: number) => (
                                     <tr
                                         key={producer.id}
                                         className={`hover:bg-gray-100 text-gray-600 gap-4 text-sm ${

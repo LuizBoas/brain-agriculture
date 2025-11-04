@@ -187,4 +187,21 @@ class HarvestService
 
         return $harvest->fresh()->load('crops');
     }
+
+    /**
+     * Deleta uma colheita e suas culturas (soft delete em cascata)
+     */
+    public function deleteHarvest(Harvest $harvest): void
+    {
+        // Carregar relacionamentos para garantir que todas as culturas sejam deletadas
+        $harvest->load('crops');
+        
+        // Soft delete das culturas (safras)
+        foreach ($harvest->crops as $crop) {
+            $crop->delete();
+        }
+        
+        // Soft delete da colheita
+        $harvest->delete();
+    }
 }

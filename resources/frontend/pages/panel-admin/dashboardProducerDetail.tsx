@@ -1,7 +1,7 @@
 import { Button } from '@/components/common/button';
 import { Container } from '@/components/common/container';
 import { AdminLayout } from '@/layouts/admin-layout';
-import { PagePropsData } from '@/types';
+import { AuthData } from '@/types';
 import { formatDate } from '@/utils/formatDate';
 import { Icon } from '@iconify/react';
 import { router } from '@inertiajs/react';
@@ -51,7 +51,7 @@ interface Producer {
 export default function DashboardProducerDetail({
     auth,
     producer
-}: PagePropsData & { producer: Producer }) {
+}: { auth: AuthData } & { producer: Producer }) {
     const [isAddFarmModalOpen, setIsAddFarmModalOpen] = useState(false);
     const [isFarmsOpen, setIsFarmsOpen] = useState(true);
 

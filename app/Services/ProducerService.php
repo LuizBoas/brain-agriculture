@@ -260,14 +260,28 @@ class ProducerService
     }
 
     /**
-     * Deleta um produtor e suas relações
+     * Deleta um produtor e suas relações (soft delete em cascata)
      */
     public function deleteProducer(Producer $producer): void
     {
+        // Carregar relacionamentos para garantir que todos sejam deletados
+        $producer->load('farms.harvests.crops');
+        
+        // Soft delete em cascata: culturas -> colheitas -> fazendas -> produtor
         foreach ($producer->farms as $farm) {
-            $farm->harvests()->delete();
+            foreach ($farm->harvests as $harvest) {
+                // Soft delete das culturas (safras)
+                foreach ($harvest->crops as $crop) {
+                    $crop->delete();
+                }
+                // Soft delete da colheita
+                $harvest->delete();
+            }
+            // Soft delete da fazenda
+            $farm->delete();
         }
-        $producer->farms()->delete();
+        
+        // Soft delete do produtor
         $producer->delete();
     }
 

@@ -145,11 +145,24 @@ class FarmService
     }
 
     /**
-     * Deleta uma fazenda e suas safras
+     * Deleta uma fazenda e suas safras (soft delete em cascata)
      */
     public function deleteFarm(Farm $farm): void
     {
-        $farm->harvests()->delete();
+        // Carregar relacionamentos para garantir que todos sejam deletados
+        $farm->load('harvests.crops');
+        
+        // Soft delete em cascata: culturas -> colheitas -> fazenda
+        foreach ($farm->harvests as $harvest) {
+            // Soft delete das culturas (safras)
+            foreach ($harvest->crops as $crop) {
+                $crop->delete();
+            }
+            // Soft delete da colheita
+            $harvest->delete();
+        }
+        
+        // Soft delete da fazenda
         $farm->delete();
     }
 
