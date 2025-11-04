@@ -5,6 +5,7 @@ Sistema completo de gestão agrícola desenvolvido com Laravel e React, permitin
 ## 📋 Índice
 
 - [Sobre o Projeto](#sobre-o-projeto)
+- [Acesso à Versão de Demonstração](#acesso-à-versão-de-demonstração)
 - [Tecnologias Utilizadas](#tecnologias-utilizadas)
 - [Requisitos](#requisitos)
 - [Instalação](#instalação)
@@ -29,6 +30,27 @@ O **Brain Agriculture** é um sistema web completo para gestão de dados agríco
 - ✅ Soft Delete em cascata
 - ✅ Validação completa de documentos brasileiros
 - ✅ Interface responsiva e moderna
+
+---
+
+## 🌐 Acesso à Versão de Demonstração
+
+O sistema está disponível online para demonstração:
+
+**URL de Acesso:** [https://teste.dynamiseducacao.com.br/login](https://teste.dynamiseducacao.com.br/login)
+
+### Credenciais de Acesso
+
+```
+Email: admin@brain-agriculture.com
+Senha: password
+```
+
+### ⚠️ Importante
+
+- Esta é uma versão de demonstração/teste
+- Os dados podem ser resetados periodicamente
+- Use apenas para avaliação do sistema
 
 ---
 
