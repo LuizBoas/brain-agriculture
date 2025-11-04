@@ -19,7 +19,7 @@ interface Crop {
 interface Harvest {
     id: string;
     year: string;
-    crops: Crop[]; // Múltiplas culturas por safra
+    crops: Crop[];
     farm: {
         id: string;
         name: string;
@@ -137,7 +137,6 @@ export default function DashboardHarvest({
         
         const cropsData = crops.filter(crop => crop.trim() !== '');
         
-        // Usar router.put diretamente com os dados corretos
         router.put(route('admin.admin.harvest.update', { id: selectedHarvest.id }), {
             year: data.year,
             crops: cropsData

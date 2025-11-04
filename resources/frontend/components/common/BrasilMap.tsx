@@ -3,8 +3,8 @@ import { brazilianStates } from '@/data/geographic-data';
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
 
 interface StateData {
-    label: string; // Código do estado (ex: 'SP', 'MG')
-    value: number; // Quantidade de fazendas
+    label: string;
+    value: number;
 }
 
 interface BrasilMapProps {
@@ -12,7 +12,6 @@ interface BrasilMapProps {
     title?: string;
 }
 
-// URL do GeoJSON dos estados brasileiros
 const GEO_URL = 'https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson';
 
 export const BrasilMap: React.FC<BrasilMapProps> = ({ data, title = '' }) => {
@@ -21,7 +20,6 @@ export const BrasilMap: React.FC<BrasilMapProps> = ({ data, title = '' }) => {
     const [isMobile, setIsMobile] = useState(false);
     const mapContainerRef = React.useRef<HTMLDivElement>(null);
 
-    // Detectar se é mobile
     React.useEffect(() => {
         const checkMobile = () => {
             setIsMobile(window.innerWidth < 768);
@@ -31,7 +29,6 @@ export const BrasilMap: React.FC<BrasilMapProps> = ({ data, title = '' }) => {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // Criar mapa de dados por código de estado
     const stateDataMap = useMemo(() => {
         const map = new Map<string, number>();
         data.forEach(item => {
@@ -40,20 +37,16 @@ export const BrasilMap: React.FC<BrasilMapProps> = ({ data, title = '' }) => {
         return map;
     }, [data]);
 
-    // Calcular valores para escala de cores
     const maxValue = useMemo(() => {
         return Math.max(...data.map(item => item.value), 1);
     }, [data]);
 
-    // Função para obter cor baseada no valor
     const getStateColor = (value: number): string => {
-        if (value === 0) return '#e5e7eb'; // Cinza claro para estados sem dados
+        if (value === 0) return '#e5e7eb';
         
         const intensity = Math.min(value / maxValue, 1);
-        
-        // Gradiente de indigo (mais claro para menos fazendas, mais escuro para mais fazendas)
-        const baseColor = [99, 102, 241]; // Indigo base
-        const lightColor = [224, 231, 255]; // Indigo muito claro
+        const baseColor = [99, 102, 241];
+        const lightColor = [224, 231, 255];
         
         const r = Math.round(baseColor[0] + (lightColor[0] - baseColor[0]) * (1 - intensity));
         const g = Math.round(baseColor[1] + (lightColor[1] - baseColor[1]) * (1 - intensity));
@@ -62,7 +55,6 @@ export const BrasilMap: React.FC<BrasilMapProps> = ({ data, title = '' }) => {
         return `rgb(${r}, ${g}, ${b})`;
     };
 
-    // Função para obter nome completo do estado
     const getStateName = (code: string): string => {
         const state = brazilianStates.find(s => s.code === code);
         return state ? state.name : code;
@@ -99,25 +91,19 @@ export const BrasilMap: React.FC<BrasilMapProps> = ({ data, title = '' }) => {
                     <Geographies geography={GEO_URL}>
                             {({ geographies }: { geographies: any[] }) =>
                                 geographies.map((geo: any) => {
-                                    // O código do estado pode estar em diferentes propriedades do GeoJSON
-                                    // Tentar diferentes formatos comuns
                                     const props = geo.properties;
                                     let stateCode = '';
                                     
-                                    // Tentar diferentes formatos
                                     if (props.sigla) {
                                         stateCode = props.sigla.toUpperCase();
                                     } else if (props.id) {
                                         stateCode = props.id.toString().toUpperCase();
                                     } else if (props.name) {
-                                        // Tentar extrair código do nome
                                         const name = props.name.toString();
-                                        // Se o nome contém o código (ex: "São Paulo - SP")
                                         const match = name.match(/\b([A-Z]{2})\b/);
                                         if (match) {
                                             stateCode = match[1];
                                         } else {
-                                            // Tentar mapear pelo nome completo
                                             const state = brazilianStates.find(s => 
                                                 s.name.toLowerCase() === name.toLowerCase()
                                             );

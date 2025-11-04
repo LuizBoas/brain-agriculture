@@ -21,7 +21,6 @@ class ProducerController extends Controller
     {
         $query = Producer::withCount('farms');
 
-        // Busca por nome ou documento
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {

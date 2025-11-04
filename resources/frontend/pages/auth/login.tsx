@@ -51,14 +51,12 @@ export default function Login(args: LoginProps) {
     const submit = (e: { preventDefault: () => void }) => {
         e.preventDefault();
 
-        // Atualiza o timestamp para forçar um novo envio
         setData('timestamp', Date.now().toString());
 
         post('/login', {
             preserveScroll: true,
             forceFormData: true,
             onError: (errors) => {
-                // Mostra qualquer erro como mensagem geral
                 if (errors.error) {
                     setLoginError(errors.error as string);
                 } else if (errors.email) {

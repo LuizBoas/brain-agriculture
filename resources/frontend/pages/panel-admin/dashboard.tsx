@@ -26,25 +26,21 @@ export default function Dashboard({
     byCrop,
     bySoilUse
 }: DashboardProps) {
-    // Função para gerar cores diferentes para cada cultura
     const generateColors = (count: number): string[] => {
         const colors: string[] = [];
-        const hueStep = 360 / count; // Divide o círculo de cores (HSL) em partes iguais
+        const hueStep = 360 / count;
         
         for (let i = 0; i < count; i++) {
             const hue = (i * hueStep) % 360;
-            // Usar saturação e luminosidade que geram cores bonitas
-            const saturation = 60 + (i % 3) * 10; // Entre 60-80%
-            const lightness = 50 + (i % 2) * 5; // Entre 50-55%
+            const saturation = 60 + (i % 3) * 10;
+            const lightness = 50 + (i % 2) * 5;
             colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
         }
         
         return colors;
     };
 
-    // Configuração do gráfico por Cultura - mostra todas as culturas ordenadas por quantidade (maior para menor)
     const cropChartData = useMemo(() => {
-        // Ordenar por quantidade (da maior para a menor)
         const sorted = [...byCrop].sort((a, b) => b.value - a.value);
         const colors = generateColors(sorted.length);
         
@@ -60,7 +56,6 @@ export default function Dashboard({
         };
     }, [byCrop]);
 
-    // Configuração do gráfico por Uso do Solo
     const soilUseChartData = {
         labels: bySoilUse.map((item: { label: string; value: number }) => item.label),
         datasets: [

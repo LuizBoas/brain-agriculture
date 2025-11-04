@@ -4,12 +4,11 @@ import { AdminLayout } from '@/layouts/admin-layout';
 import { AuthData } from '@/types';
 import { formatDate } from '@/utils/formatDate';
 import { Icon } from '@iconify/react';
-import { router } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { ReactNode, useState } from 'react';
 import { DynamicModal } from '@/components/admin-panel/dynamic-modal-admin';
 import { InputPopUpAdmin } from '@/components/common/field';
 import { Form } from '@/components/common/form';
-import { useForm } from '@inertiajs/react';
 
 interface Crop {
     id: string;
@@ -283,6 +282,7 @@ export default function DashboardProducerDetail({
                                                     </p>
                                                 </div>
                                             </div>
+
 
                                             {farm.harvests.length > 0 && (
                                                 <div className="mt-4 pt-4 border-t border-gray-200">

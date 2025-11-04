@@ -79,7 +79,6 @@ export default function DashboardFarm({
     const [deleteMessage, setDeleteMessage] = useState('');
     const [onDeleteAction, setOnDeleteAction] = useState<() => void>(() => () => {});
 
-    // Form para adicionar fazenda
     const { data: addFarmData, setData: setAddFarmData, post: postFarm, reset: resetAddFarm, errors: addFarmErrors, processing: processingAddFarm } = useForm({
         producer_id: '',
         name: '',
@@ -91,8 +90,8 @@ export default function DashboardFarm({
         harvests: [] as Array<{ year: string; crops: string[] }>
     });
 
-    // Form para editar fazenda
     const { data: editFarmData, setData: setEditFarmData, put: putFarm, reset: resetEditFarm, errors: editFarmErrors, processing: processingFarm } = useForm({
+        producer_id: '',
         name: '',
         city: '',
         state: '',
@@ -102,10 +101,8 @@ export default function DashboardFarm({
         harvests: [] as Array<{ year: string; crops: string[] }>
     });
 
-    // Form para deletar fazenda
     const { delete: deleteFarm } = useForm();
 
-    // Helper para pegar a primeira mensagem de erro (caso seja array)
     const getErrorMessage = (errors: any, field: string): string | undefined => {
         const error = errors[field];
         if (!error) return undefined;
@@ -155,7 +152,6 @@ export default function DashboardFarm({
     const handleEditFarm = (farm: Farm) => {
         setSelectedFarm(farm);
         
-        // Preparar safras para edição
         const harvestsData = farm.harvests && farm.harvests.length > 0
             ? farm.harvests.map(h => ({
                 year: h.year,
@@ -166,6 +162,7 @@ export default function DashboardFarm({
         setEditHarvests(harvestsData);
         
         setEditFarmData({
+            producer_id: farm.producer.id,
             name: farm.name,
             city: farm.city,
             state: farm.state,
@@ -187,11 +184,21 @@ export default function DashboardFarm({
             crops: h.crops.filter(c => c.trim() !== '').map(c => c.trim())
         })).filter(h => h.year.trim() !== '' && h.crops.length > 0);
 
-        // Usar router.put diretamente para garantir que os dados sejam enviados
-        router.put(route('admin.admin.farm.edit', { producerId: selectedFarm.producer.id, farmId: selectedFarm.id }), {
-            ...editFarmData,
+        const producerId = editFarmData.producer_id || selectedFarm.producer.id;
+
+        // Campos vazios/zero são enviados como string vazia para validação falhar
+        const formData = {
+            producer_id: editFarmData.producer_id || selectedFarm.producer.id,
+            name: editFarmData.name || '',
+            city: editFarmData.city || '',
+            state: editFarmData.state || '',
+            total_area: (editFarmData.total_area && editFarmData.total_area !== '0' && parseFloat(editFarmData.total_area) > 0) ? editFarmData.total_area : '',
+            arable_area: (editFarmData.arable_area && editFarmData.arable_area !== '0') ? editFarmData.arable_area : '',
+            vegetation_area: (editFarmData.vegetation_area && editFarmData.vegetation_area !== '0') ? editFarmData.vegetation_area : '',
             harvests: harvestsData
-        }, {
+        };
+
+        router.put(route('admin.admin.farm.edit', { producerId: producerId, farmId: selectedFarm.id }), formData, {
             preserveScroll: false,
             onSuccess: () => {
                 resetEditFarm();
@@ -214,7 +221,7 @@ export default function DashboardFarm({
 
     const handleDeleteFarm = (farm: Farm) => {
         setSelectedFarm(farm);
-        setDeleteMessage(`Tem certeza que deseja excluir a fazenda "${farm.name}"? Esta ação excluirá permanentemente (soft delete) a fazenda, todas as colheitas e todas as safras (culturas) relacionadas.`);
+        setDeleteMessage(`Tem certeza que deseja excluir a fazenda "${farm.name}"? Esta ação excluirá permanentemente a fazenda, todas as colheitas e todas as safras (culturas) relacionadas.`);
         setOnDeleteAction(() => () => {
             deleteFarm(route('admin.admin.farm.delete', { producerId: farm.producer.id, farmId: farm.id }), {
                 onSuccess: () => {
@@ -229,13 +236,11 @@ export default function DashboardFarm({
     const submitAddFarm = (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Validar se o produtor foi selecionado antes de enviar
         if (!addFarmData.producer_id || addFarmData.producer_id.trim() === '') {
             setProducerIdError('Selecione um produtor');
             return;
         }
         
-        // Limpar erro se o produtor foi selecionado
         setProducerIdError(undefined);
         
         const harvestsData = addHarvests.map(h => ({
@@ -243,10 +248,8 @@ export default function DashboardFarm({
             crops: h.crops.filter(c => c.trim() !== '').map(c => c.trim())
         })).filter(h => h.year.trim() !== '' && h.crops.length > 0);
 
-        // Atualizar os dados do formulário com as safras antes de enviar
         setAddFarmData('harvests', harvestsData);
 
-        // Usar o método post do useForm para que os erros sejam automaticamente capturados
         postFarm(route('admin.admin.farm.create', { producerId: addFarmData.producer_id }), {
             preserveScroll: true,
             onSuccess: () => {
@@ -254,12 +257,10 @@ export default function DashboardFarm({
                 setAddHarvests([]);
                 setIsAddFarmModalOpen(false);
                 setProducerIdError(undefined);
-                // O backend já redireciona para a tela de detalhes do produtor
             }
         });
     };
 
-    // Funções para gerenciar safras na edição
     const addEditHarvest = () => {
         setEditHarvests([...editHarvests, { year: '', crops: [] }]);
     };
@@ -292,7 +293,6 @@ export default function DashboardFarm({
         setEditHarvests(newHarvests);
     };
 
-    // Funções para gerenciar safras na adição
     const addAddHarvest = () => {
         setAddHarvests([...addHarvests, { year: '', crops: [] }]);
     };
@@ -447,7 +447,6 @@ export default function DashboardFarm({
                                     value={addFarmData.producer_id}
                                     onChange={(value) => {
                                         setAddFarmData('producer_id', value);
-                                        // Limpar erro quando o usuário selecionar um produtor
                                         if (value) {
                                             setProducerIdError(undefined);
                                         }
@@ -466,7 +465,7 @@ export default function DashboardFarm({
                                 />
 
                                 <InputPopUpAdmin
-                                    label="Nome da Fazenda"
+                                    label="Nome da Fazenda *"
                                     value={addFarmData.name}
                                     onChange={(e) => setAddFarmData('name', e.target.value)}
                                     errorMessage={getErrorMessage(addFarmErrors, 'name')}
@@ -474,11 +473,10 @@ export default function DashboardFarm({
                                 />
 
                                 <Select
-                                    label="Estado"
+                                    label="Estado *"
                                     value={addFarmData.state}
                                     onChange={(value) => {
                                         setAddFarmData('state', value);
-                                        // Limpar cidade quando o estado mudar
                                         setAddFarmData('city', '');
                                     }}
                                     errorMessage={getErrorMessage(addFarmErrors, 'state')}
@@ -488,7 +486,7 @@ export default function DashboardFarm({
                                 />
 
                                 <CitySelect
-                                    label="Cidade"
+                                    label="Cidade *"
                                     state={addFarmData.state}
                                     value={addFarmData.city}
                                     onChange={(value) => setAddFarmData('city', value)}
@@ -496,7 +494,7 @@ export default function DashboardFarm({
                                 />
 
                                 <InputPopUpAdmin
-                                    label="Área Total (hectares)"
+                                    label="Área Total (hectares) *"
                                     type="number"
                                     step="0.01"
                                     value={addFarmData.total_area}
@@ -506,7 +504,7 @@ export default function DashboardFarm({
                                 />
 
                                 <InputPopUpAdmin
-                                    label="Área Agricultável (hectares)"
+                                    label="Área Agricultável (hectares) *"
                                     type="number"
                                     step="0.01"
                                     value={addFarmData.arable_area}
@@ -516,7 +514,7 @@ export default function DashboardFarm({
                                 />
 
                                 <InputPopUpAdmin
-                                    label="Área de Vegetação (hectares)"
+                                    label="Área de Vegetação (hectares) *"
                                     type="number"
                                     step="0.01"
                                     value={addFarmData.vegetation_area}
@@ -632,8 +630,32 @@ export default function DashboardFarm({
                     >
                         <Form validationErrors={editFarmErrors} onSubmit={submitEditFarm}>
                             <div className="space-y-4">
+                                <Select
+                                    label="Produtor (Proprietário) *"
+                                    value={editFarmData.producer_id}
+                                    onChange={(value) => setEditFarmData('producer_id', value)}
+                                    errorMessage={getErrorMessage(editFarmErrors, 'producer_id')}
+                                    options={producers.map(p => {
+                                        const formatDocument = (doc: string, type: string) => {
+                                            const cleaned = doc.replace(/\D/g, '');
+                                            if (type === 'CPF') {
+                                                return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+                                            } else {
+                                                return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+                                            }
+                                        };
+                                        return {
+                                            value: p.id,
+                                            label: `${p.name} (${p.document_type}: ${formatDocument(p.document, p.document_type)})`
+                                        };
+                                    })}
+                                    hideDefaultWhenOpen={true}
+                                    variant="light"
+                                    placeholder="Selecione o produtor"
+                                />
+
                                 <InputPopUpAdmin
-                                    label="Nome da Fazenda"
+                                    label="Nome da Fazenda *"
                                     value={editFarmData.name}
                                     onChange={(e) => setEditFarmData('name', e.target.value)}
                                     errorMessage={getErrorMessage(editFarmErrors, 'name')}
@@ -641,11 +663,10 @@ export default function DashboardFarm({
                                 />
 
                                 <Select
-                                    label="Estado"
+                                    label="Estado *"
                                     value={editFarmData.state}
                                     onChange={(value) => {
                                         setEditFarmData('state', value);
-                                        // Limpar cidade quando o estado mudar
                                         setEditFarmData('city', '');
                                     }}
                                     errorMessage={getErrorMessage(editFarmErrors, 'state')}
@@ -655,7 +676,7 @@ export default function DashboardFarm({
                                 />
 
                                 <CitySelect
-                                    label="Cidade"
+                                    label="Cidade *"
                                     state={editFarmData.state}
                                     value={editFarmData.city}
                                     onChange={(value) => setEditFarmData('city', value)}
@@ -663,7 +684,7 @@ export default function DashboardFarm({
                                 />
 
                                 <InputPopUpAdmin
-                                    label="Área Total (hectares)"
+                                    label="Área Total (hectares) *"
                                     type="number"
                                     step="0.01"
                                     value={editFarmData.total_area}
@@ -673,7 +694,7 @@ export default function DashboardFarm({
                                 />
 
                                 <InputPopUpAdmin
-                                    label="Área Agricultável (hectares)"
+                                    label="Área Agricultável (hectares) *"
                                     type="number"
                                     step="0.01"
                                     value={editFarmData.arable_area}
@@ -683,7 +704,7 @@ export default function DashboardFarm({
                                 />
 
                                 <InputPopUpAdmin
-                                    label="Área de Vegetação (hectares)"
+                                    label="Área de Vegetação (hectares) *"
                                     type="number"
                                     step="0.01"
                                     value={editFarmData.vegetation_area}

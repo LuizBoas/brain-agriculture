@@ -15,12 +15,8 @@ class ProducerService
         $this->farmService = $farmService;
     }
 
-    /**
-     * Valida documento (CPF/CNPJ)
-     */
     public function validateDocument(string $document, string $documentType): string
     {
-        // Remove caracteres não numéricos
         $cleanDocument = preg_replace('/[^0-9]/', '', $document);
 
         if ($documentType === 'CPF') {
@@ -54,12 +50,8 @@ class ProducerService
         return $cleanDocument;
     }
 
-    /**
-     * Valida CPF verificando dígitos verificadores
-     */
     private function validateCPF(string $cpf): bool
     {
-        // Verifica se todos os dígitos são iguais (ex: 111.111.111-11)
         $firstDigit = $cpf[0];
         $allSame = true;
         for ($i = 1; $i < 11; $i++) {
@@ -71,8 +63,6 @@ class ProducerService
         if ($allSame) {
             return false;
         }
-
-        // Valida primeiro dígito verificador
         $sum = 0;
         for ($i = 0; $i < 9; $i++) {
             $sum += (int) $cpf[$i] * (10 - $i);
@@ -84,7 +74,6 @@ class ProducerService
             return false;
         }
 
-        // Valida segundo dígito verificador
         $sum = 0;
         for ($i = 0; $i < 10; $i++) {
             $sum += (int) $cpf[$i] * (11 - $i);
@@ -99,12 +88,8 @@ class ProducerService
         return true;
     }
 
-    /**
-     * Valida CNPJ verificando dígitos verificadores
-     */
     private function validateCNPJ(string $cnpj): bool
     {
-        // Verifica se todos os dígitos são iguais (ex: 00.000.000/0000-00)
         $firstDigit = $cnpj[0];
         $allSame = true;
         for ($i = 1; $i < 14; $i++) {
@@ -116,8 +101,6 @@ class ProducerService
         if ($allSame) {
             return false;
         }
-
-        // Valida primeiro dígito verificador
         $weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
         $sum = 0;
         for ($i = 0; $i < 12; $i++) {
@@ -130,7 +113,6 @@ class ProducerService
             return false;
         }
 
-        // Valida segundo dígito verificador
         $weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
         $sum = 0;
         for ($i = 0; $i < 13; $i++) {
@@ -146,9 +128,6 @@ class ProducerService
         return true;
     }
 
-    /**
-     * Verifica se já existe um produtor com o documento
-     */
     public function documentExists(string $document, string $documentType, ?string $excludeId = null): bool
     {
         $query = Producer::where('document', $document)
@@ -161,9 +140,6 @@ class ProducerService
         return $query->exists();
     }
 
-    /**
-     * Valida dados do produtor
-     */
     public function validateProducerData(array $producerData, bool $includeFarms = true): array
     {
         $rules = [
@@ -186,9 +162,34 @@ class ProducerService
             $rules['farms.*.harvests.*.crops.*'] = 'required|string|max:255';
         }
 
-        $validator = Validator::make($producerData, $rules, [
-            'farms.*.harvests.*.year.regex' => 'O ano deve ter exatamente 4 dígitos numéricos (ex: 2024)',
-        ]);
+        $messages = [
+            'document.required' => 'O campo documento é obrigatório.',
+            'document_type.required' => 'O campo tipo de documento é obrigatório.',
+            'document_type.in' => 'O tipo de documento deve ser CPF ou CNPJ.',
+            'name.required' => 'O campo nome do produtor é obrigatório.',
+            'name.max' => 'O nome do produtor não pode ter mais de 255 caracteres.',
+            'farms.*.name.required_with' => 'O campo nome da fazenda é obrigatório.',
+            'farms.*.name.max' => 'O nome da fazenda não pode ter mais de 255 caracteres.',
+            'farms.*.city.required_with' => 'O campo cidade é obrigatório.',
+            'farms.*.city.max' => 'O nome da cidade não pode ter mais de 255 caracteres.',
+            'farms.*.state.required_with' => 'O campo estado é obrigatório.',
+            'farms.*.state.size' => 'O estado deve ter exatamente 2 caracteres.',
+            'farms.*.total_area.required_with' => 'O campo área total é obrigatório.',
+            'farms.*.total_area.numeric' => 'A área total deve ser um número.',
+            'farms.*.total_area.min' => 'A área total deve ser maior ou igual a zero.',
+            'farms.*.arable_area.required_with' => 'O campo área agricultável é obrigatório.',
+            'farms.*.arable_area.numeric' => 'A área agricultável deve ser um número.',
+            'farms.*.arable_area.min' => 'A área agricultável deve ser maior ou igual a zero.',
+            'farms.*.vegetation_area.required_with' => 'O campo área de vegetação é obrigatório.',
+            'farms.*.vegetation_area.numeric' => 'A área de vegetação deve ser um número.',
+            'farms.*.vegetation_area.min' => 'A área de vegetação deve ser maior ou igual a zero.',
+            'farms.*.harvests.*.year.required_with' => 'O campo ano da safra é obrigatório.',
+            'farms.*.harvests.*.year.regex' => 'O ano deve ter exatamente 4 dígitos numéricos (ex: 2024).',
+            'farms.*.harvests.*.crops.*.required' => 'O campo cultura é obrigatório.',
+            'farms.*.harvests.*.crops.*.max' => 'O nome da cultura não pode ter mais de 255 caracteres.',
+        ];
+
+        $validator = Validator::make($producerData, $rules, $messages);
 
         if ($validator->fails()) {
             throw ValidationException::withMessages($validator->errors()->toArray());
@@ -197,25 +198,17 @@ class ProducerService
         return $producerData;
     }
 
-    /**
-     * Cria um produtor com suas fazendas e safras
-     */
     public function createProducer(array $producerData): Producer
     {
-        // Validar dados
         $this->validateProducerData($producerData, true);
-
-        // Validar e limpar documento
         $document = $this->validateDocument($producerData['document'], $producerData['document_type']);
 
-        // Verificar duplicidade
         if ($this->documentExists($document, $producerData['document_type'])) {
             throw ValidationException::withMessages([
                 'document' => 'Já existe um produtor com este documento'
             ]);
         }
 
-        // Criar produtor
         $producer = Producer::create([
             'document' => $document,
             'document_type' => $producerData['document_type'],
@@ -223,7 +216,6 @@ class ProducerService
             'created_by' => auth()->id(),
         ]);
 
-        // Criar fazendas se fornecidas
         if (isset($producerData['farms']) && is_array($producerData['farms']) && count($producerData['farms']) > 0) {
             $this->farmService->createFarmsForProducer($producer->id, $producerData['farms']);
         }
@@ -231,25 +223,17 @@ class ProducerService
         return $producer->load('farms.harvests');
     }
 
-    /**
-     * Atualiza um produtor (apenas dados do produtor, não fazendas)
-     */
     public function updateProducer(Producer $producer, array $producerData): Producer
     {
-        // Validar dados (sem fazendas)
         $this->validateProducerData($producerData, false);
-
-        // Validar e limpar documento
         $document = $this->validateDocument($producerData['document'], $producerData['document_type']);
 
-        // Verificar duplicidade (exceto o próprio registro)
         if ($this->documentExists($document, $producerData['document_type'], $producer->id)) {
             throw ValidationException::withMessages([
                 'document' => 'Já existe um produtor com este documento'
             ]);
         }
 
-        // Atualizar apenas dados do produtor
         $producer->update([
             'document' => $document,
             'document_type' => $producerData['document_type'],
@@ -259,35 +243,23 @@ class ProducerService
         return $producer->fresh();
     }
 
-    /**
-     * Deleta um produtor e suas relações (soft delete em cascata)
-     */
     public function deleteProducer(Producer $producer): void
     {
-        // Carregar relacionamentos para garantir que todos sejam deletados
         $producer->load('farms.harvests.crops');
         
-        // Soft delete em cascata: culturas -> colheitas -> fazendas -> produtor
         foreach ($producer->farms as $farm) {
             foreach ($farm->harvests as $harvest) {
-                // Soft delete das culturas (safras)
                 foreach ($harvest->crops as $crop) {
                     $crop->delete();
                 }
-                // Soft delete da colheita
                 $harvest->delete();
             }
-            // Soft delete da fazenda
             $farm->delete();
         }
         
-        // Soft delete do produtor
         $producer->delete();
     }
 
-    /**
-     * Formata dados do produtor para edição
-     */
     public function formatForEdit(Producer $producer): array
     {
         $farmsData = $producer->farms->map(function($farm) {

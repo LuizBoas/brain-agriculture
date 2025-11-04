@@ -22,7 +22,6 @@ class FarmController extends Controller
     {
         $query = Farm::with(['producer', 'harvests.crops'])->withCount('harvests');
 
-        // Busca por nome da fazenda, cidade, estado ou nome do produtor
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -38,7 +37,6 @@ class FarmController extends Controller
         $perPage = $request->get('per_page', 10);
         $farms = $query->paginate($perPage);
 
-        // Buscar produtores para o select (se solicitado)
         $producers = Producer::select('id', 'name', 'document', 'document_type')->get();
 
         return Inertia::render('panel-admin/dashboardFarm', [
@@ -61,7 +59,7 @@ class FarmController extends Controller
     public function update(Request $request, $producerId, $farmId)
     {
         try {
-            $farm = Farm::where('producer_id', $producerId)->findOrFail($farmId);
+            $farm = Farm::findOrFail($farmId);
             $this->farmService->updateFarm($farm, $request->all());
             return redirect()->route('admin.admin.dashboard.farm')->with('success', 'Fazenda atualizada com sucesso!');
         } catch (ValidationException $e) {

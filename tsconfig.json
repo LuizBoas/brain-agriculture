@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "types": ["jest", "node"],
         "allowJs": true,
         "module": "ESNext",
         "moduleResolution": "bundler",
@@ -12,6 +13,7 @@
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "noEmit": true,
+        "resolveJsonModule": true,
         "paths": {
             "@/*": ["./resources/frontend/*"],
             "components/*": ["./resources/frontend/components/*"],
@@ -19,7 +21,14 @@
             "ziggy-js": ["./vendor/tightenco/ziggy"]
         }
     },
-    "include": ["resources/frontend/**/*.ts", "resources/frontend/**/*.tsx", "resources/frontend/**/*.d.ts"],
+    "include": [
+        "resources/frontend/**/*.ts", 
+        "resources/frontend/**/*.tsx", 
+        "resources/frontend/**/*.d.ts",
+        "resources/frontend/__tests__/**/*.ts",
+        "resources/frontend/__tests__/**/*.tsx",
+        "resources/frontend/__tests__/**/*.d.ts"
+    ],
     "exclude": ["node_modules", "public"]
 }
 

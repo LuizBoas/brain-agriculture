@@ -15,11 +15,9 @@ class DashboardController extends Controller
 {
     public function dashboard()
     {
-        // Totais
         $totalFarms = Farm::count();
         $totalHectares = Farm::sum('total_area');
 
-        // Gráfico por Estado
         $byState = Farm::select('state', DB::raw('COUNT(*) as count'))
             ->groupBy('state')
             ->orderBy('count', 'desc')
@@ -31,7 +29,6 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Gráfico por Cultura (agora vem de crops.name)
         $byCrop = Crop::select('name', DB::raw('COUNT(*) as count'))
             ->groupBy('name')
             ->orderBy('count', 'desc')
@@ -43,7 +40,6 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Gráfico por Uso do Solo
         $totalArable = Farm::sum('arable_area');
         $totalVegetation = Farm::sum('vegetation_area');
         

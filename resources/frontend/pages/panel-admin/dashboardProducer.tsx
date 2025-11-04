@@ -83,19 +83,13 @@ export default function DashboardProducer({
     };
 
     const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        // Remove todos os caracteres não numéricos
         const numericValue = e.target.value.replace(/\D/g, '');
-        
-        // Define o limite baseado no tipo de documento
         const maxLength = data.document_type === 'CPF' ? 11 : 14;
-        
-        // Limita o tamanho
         const limitedValue = numericValue.slice(0, maxLength);
         
         setData('document', limitedValue);
     };
 
-    // Helper para pegar a primeira mensagem de erro (caso seja array)
     const getErrorMessage = (field: keyof typeof errors): string | undefined => {
         const error = errors[field];
         if (!error) return undefined;
@@ -103,7 +97,6 @@ export default function DashboardProducer({
         return error as string;
     };
 
-    // Limita o documento quando o tipo de documento mudar
     useEffect(() => {
         if (data.document) {
             const numericValue = data.document.replace(/\D/g, '');
@@ -295,7 +288,7 @@ export default function DashboardProducer({
                                 </div>
 
                                 <InputPopUpAdmin
-                                    label="Documento"
+                                    label="Documento *"
                                     value={data.document}
                                     onChange={handleDocumentChange}
                                     errorMessage={getErrorMessage('document')}
@@ -304,7 +297,7 @@ export default function DashboardProducer({
                                 />
 
                                 <InputPopUpAdmin
-                                    label="Nome do Produtor"
+                                    label="Nome do Produtor *"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
                                     errorMessage={getErrorMessage('name')}
@@ -361,7 +354,7 @@ export default function DashboardProducer({
                                 </div>
 
                                 <InputPopUpAdmin
-                                    label="Documento"
+                                    label="Documento *"
                                     value={data.document}
                                     onChange={handleDocumentChange}
                                     errorMessage={getErrorMessage('document')}
@@ -370,7 +363,7 @@ export default function DashboardProducer({
                                 />
 
                                 <InputPopUpAdmin
-                                    label="Nome do Produtor"
+                                    label="Nome do Produtor *"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
                                     errorMessage={getErrorMessage('name')}

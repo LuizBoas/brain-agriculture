@@ -15,7 +15,6 @@ class AdminController extends Controller
     {
         $query = User::query();
 
-        // Busca por nome ou email
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -34,11 +33,23 @@ class AdminController extends Controller
 
     public function store(Request $request)
     {
+        $messages = [
+            'name.required' => 'O campo nome é obrigatório.',
+            'name.max' => 'O nome não pode ter mais de 255 caracteres.',
+            'email.required' => 'O campo email é obrigatório.',
+            'email.email' => 'O email deve ser um endereço válido.',
+            'email.max' => 'O email não pode ter mais de 255 caracteres.',
+            'email.unique' => 'Este email já está cadastrado.',
+            'password.required' => 'O campo senha é obrigatório.',
+            'password.min' => 'A senha deve ter pelo menos 8 caracteres.',
+            'password.confirmed' => 'A confirmação da senha não confere.',
+        ];
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-        ]);
+        ], $messages);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
@@ -57,11 +68,22 @@ class AdminController extends Controller
     {
         $admin = User::findOrFail($id);
 
+        $messages = [
+            'name.required' => 'O campo nome é obrigatório.',
+            'name.max' => 'O nome não pode ter mais de 255 caracteres.',
+            'email.required' => 'O campo email é obrigatório.',
+            'email.email' => 'O email deve ser um endereço válido.',
+            'email.max' => 'O email não pode ter mais de 255 caracteres.',
+            'email.unique' => 'Este email já está cadastrado.',
+            'password.min' => 'A senha deve ter pelo menos 8 caracteres.',
+            'password.confirmed' => 'A confirmação da senha não confere.',
+        ];
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $id,
             'password' => 'nullable|string|min:8|confirmed',
-        ]);
+        ], $messages);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
@@ -85,7 +107,6 @@ class AdminController extends Controller
     {
         $admin = User::findOrFail($id);
         
-        // Prevenir exclusão do próprio usuário
         if ($admin->id === auth()->id()) {
             return back()->withErrors(['error' => 'Você não pode excluir sua própria conta']);
         }

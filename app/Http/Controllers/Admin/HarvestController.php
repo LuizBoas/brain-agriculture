@@ -22,7 +22,6 @@ class HarvestController extends Controller
     {
         $query = Harvest::with(['farm.producer', 'crops']);
 
-        // Busca por ano da safra, nome da plantação/cultura, nome da fazenda ou nome do produtor
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {

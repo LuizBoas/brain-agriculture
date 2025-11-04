@@ -4,7 +4,6 @@ import { getStateCode } from '../../data/geographic-data';
 import { InputPopUp } from './field';
 import { cn } from './primitive';
 
-// Componente de campo base
 interface BaseFieldProps {
     label: string;
     children: React.ReactNode;
@@ -19,7 +18,6 @@ export const FormField: React.FC<BaseFieldProps> = ({ label, children }) => {
     );
 };
 
-// Componente de campo de texto
 interface TextInputProps {
     label: string;
     value: string;
@@ -58,7 +56,6 @@ export const TextInput: React.FC<TextInputProps> = ({
     );
 };
 
-// Componente de campo de data
 interface DateInputProps {
     label: string;
     value: string;
@@ -71,7 +68,6 @@ export const DateInput: React.FC<DateInputProps> = ({ label, value, onChange, er
     const [isFocused, setIsFocused] = useState(false);
     const inputRef = React.useRef<HTMLInputElement>(null);
 
-    // Função para abrir o seletor de data ao clicar no ícone
     const handleIconClick = () => {
         if (inputRef.current) {
             inputRef.current.showPicker();
@@ -105,8 +101,6 @@ export const DateInput: React.FC<DateInputProps> = ({ label, value, onChange, er
                         errorMessage ? 'border-red-500' : 'border-primary/30',
                         'focus:border-primary focus:ring-2 focus:ring-primary/30',
                         'transition-all duration-200 ease-in-out',
-
-                        // Método mais agressivo para remover o ícone
                         '[&::-webkit-calendar-picker-indicator]{display:none !important; -webkit-appearance: none !important; appearance: none !important; opacity:0 !important; width:0 !important; height:0 !important; position:absolute !important; z-index:-1 !important;}',
                         '[&::-webkit-datetime-edit]{z-index:1;}',
                         '[&::-webkit-inner-spin-button]{-webkit-appearance: none !important; appearance: none !important; display:none !important;}',
@@ -120,7 +114,6 @@ export const DateInput: React.FC<DateInputProps> = ({ label, value, onChange, er
                         background: '#0f172a',
                         color: '#ffffff',
                         caretColor: 'transparent',
-                        // Estilos mais agressivos
                         backgroundImage: 'none !important',
                         position: 'relative',
                         WebkitAppearance: 'none',
@@ -135,7 +128,6 @@ export const DateInput: React.FC<DateInputProps> = ({ label, value, onChange, er
     );
 };
 
-// Componente de campo de seleção unificado com pesquisa
 interface SelectProps {
     label: string;
     value: string;
@@ -143,11 +135,11 @@ interface SelectProps {
     options: { value: string; label: string }[];
     errorMessage?: string;
     className?: string;
-    hideDefaultWhenOpen?: boolean; // Opção para esconder o valor padrão quando o select é aberto
+    hideDefaultWhenOpen?: boolean;
     disabled?: boolean;
     placeholder?: string;
-    searchable?: boolean; // Nova propriedade para habilitar pesquisa
-    variant?: 'dark' | 'light'; // Variante de estilo (escuro ou claro)
+    searchable?: boolean;
+    variant?: 'dark' | 'light';
 }
 
 export const Select: React.FC<SelectProps> = ({
@@ -160,8 +152,8 @@ export const Select: React.FC<SelectProps> = ({
     hideDefaultWhenOpen = false,
     disabled = false,
     placeholder = 'Selecione',
-    searchable = true, // Por padrão, habilitado
-    variant = 'dark' // Padrão escuro para manter compatibilidade
+    searchable = true,
+    variant = 'dark'
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -169,13 +161,11 @@ export const Select: React.FC<SelectProps> = ({
     const dropdownRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Encontrar o label da opção selecionada
     useEffect(() => {
         const selectedOption = options.find((option) => option.value === value);
         setSelectedLabel(selectedOption ? selectedOption.label : '');
     }, [value, options]);
 
-    // Fechar dropdown quando clicar fora
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -188,14 +178,12 @@ export const Select: React.FC<SelectProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Filtrar opções baseado no termo de pesquisa
     const filteredOptions = options.filter(
         (option) =>
             option.label.toLowerCase().includes(searchTerm.toLowerCase()) &&
             (!hideDefaultWhenOpen || option.value !== '')
     );
 
-    // Adicionar opção placeholder se necessário
     const hasEmptyOption = options.some((option) => option.value === '');
     const finalOptions = hasEmptyOption ? filteredOptions : [{ value: '', label: placeholder }, ...filteredOptions];
 
@@ -336,7 +324,6 @@ export const Select: React.FC<SelectProps> = ({
     );
 };
 
-// Componente para seleção de cidade
 interface CitySelectProps {
     label: string;
     value: string;
@@ -344,7 +331,7 @@ interface CitySelectProps {
     state: string;
     errorMessage?: string;
     className?: string;
-    validateWithState?: boolean; // Nova propriedade para validação conjunta de estado e cidade
+    validateWithState?: boolean;
 }
 
 export const CitySelect: React.FC<CitySelectProps> = ({
@@ -354,26 +341,19 @@ export const CitySelect: React.FC<CitySelectProps> = ({
     state,
     errorMessage,
     className = '',
-    validateWithState = false // Por padrão, desativado
+    validateWithState = false
 }) => {
-    console.log('🏙️ CitySelect renderizado com sigla do estado:', state);
     const [cities, setCities] = useState<{ id: string; nome: string }[]>([]);
     const [loading, setLoading] = useState(false);
-    // Estado para armazenar o estado anterior para detectar mudanças
     const [previousState, setPreviousState] = useState<string>(state);
 
-    // Este useEffect é executado quando o componente é montado e quando o estado muda
     useEffect(() => {
-        // Verificar se o estado mudou
         if (previousState !== state) {
-            console.log('Estado mudou de', previousState, 'para', state);
-            // Resetar o valor da cidade quando o estado mudar
             onChange('');
             setPreviousState(state);
         }
     }, [state, onChange, previousState]);
 
-    // Este useEffect é para buscar as cidades quando o estado mudar
     useEffect(() => {
         if (!state) {
             setCities([]);
@@ -383,12 +363,9 @@ export const CitySelect: React.FC<CitySelectProps> = ({
         const fetchCities = async () => {
             setLoading(true);
             try {
-                // Converter sigla do estado para código do IBGE
                 const ibgeCode = getStateCode(state);
-                console.log('🔍 Buscando cidades para sigla:', state, 'código IBGE:', ibgeCode);
 
                 if (!ibgeCode) {
-                    console.error('❌ Código do IBGE não encontrado para sigla:', state);
                     setCities([]);
                     setLoading(false);
                     return;
@@ -397,10 +374,8 @@ export const CitySelect: React.FC<CitySelectProps> = ({
                 const response = await axios.get(
                     `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${ibgeCode}/municipios`
                 );
-                console.log('✅ Cidades encontradas:', response.data.length);
                 setCities(response.data);
             } catch (error) {
-                console.error('❌ Erro ao buscar cidades:', error);
                 setCities([]);
             } finally {
                 setLoading(false);
@@ -410,25 +385,18 @@ export const CitySelect: React.FC<CitySelectProps> = ({
         fetchCities();
     }, [state]);
 
-    // Função para converter sigla do estado para código do IBGE
-    // Removida - agora usa getStateCode do geographic-data.ts
-
-    // Definir mensagem de erro com base na validação
     const validationError =
         validateWithState && state && !value ? 'Selecione uma cidade para o estado escolhido' : errorMessage;
 
-    // Transformar os dados da cidade para o formato de opções
     const cityOptions = loading
         ? [{ value: '', label: 'Carregando cidades...' }]
         : cities.map((city) => ({ value: city.nome, label: city.nome }));
 
-    // Garantir que temos apenas uma opção padrão no início
     const finalOptions = [
         { value: '', label: state ? 'Selecione uma cidade' : 'Selecione um estado primeiro' },
         ...(loading ? [] : cityOptions)
     ];
 
-    // Forçar o valor vazio se não houver estado selecionado
     const displayValue = state ? value : '';
 
     return (
@@ -456,14 +424,11 @@ export const CitySelect: React.FC<CitySelectProps> = ({
     );
 };
 
-// Aliases para compatibilidade com componentes anteriores
 export const Field = FormField;
 export const Input = TextInput;
 export const DtInput = DateInput;
 export const Sel = Select;
 export const CtSelect = CitySelect;
-
-// Para compatibilidade com versões anteriores
 export const ProfileField = FormField;
 export const ProfileInput = TextInput;
 export const ProfileDateInput = DateInput;
