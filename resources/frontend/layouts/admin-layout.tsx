@@ -2,7 +2,7 @@ import { ToastMessage } from '@/components/common/toasts';
 import { ClasseFilterProvider } from '@/contexts/ClasseFilterContext';
 import { Icon } from '@iconify/react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useState, useEffect } from 'react';
 
 // Tipos para o menu
 interface MenuItem {
@@ -60,16 +60,54 @@ const coordinatorMenuSections: MenuSection[] = fullMenuSections;
 export function AdminLayout({ children }: PropsWithChildren) {
     const currentRoute = route().current();
     const { auth } = usePage().props as any;
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Por enquanto, usar sempre o menu completo
     const menuSections = fullMenuSections;
+
+    // Fechar menu mobile ao redimensionar para desktop
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 768) {
+                setIsMobileMenuOpen(false);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Fechar menu ao clicar em um link no mobile
+    const handleLinkClick = () => {
+        if (window.innerWidth < 768) {
+            setIsMobileMenuOpen(false);
+        }
+    };
 
     return (
         <ClasseFilterProvider>
             <div className="flex min-h-screen bg-[#f1f3f5]">
                 <ToastMessage />
+                
+                {/* Botão Hamburger para Mobile */}
+                <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="fixed top-4 left-4 z-50 md:hidden bg-secondary text-white p-2 rounded-md shadow-lg hover:bg-secondary/80 transition-colors"
+                    aria-label="Toggle menu"
+                >
+                    <Icon icon={isMobileMenuOpen ? 'mdi:close' : 'mdi:menu'} className="w-6 h-6" />
+                </button>
+
+                {/* Overlay para mobile */}
+                {isMobileMenuOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    />
+                )}
+
                 {/* Menu Lateral */}
-                <aside className="fixed h-screen w-[260px] bg-secondary text-white flex flex-col justify-start py-6 px-4 overflow-y-auto menu-lateral-scroll">
+                <aside className={`fixed h-screen w-[260px] bg-secondary text-white flex flex-col justify-start py-6 px-4 overflow-y-auto menu-lateral-scroll z-40 transition-transform duration-300 ease-in-out
+                    ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
                     {/* ============================================
                         SEÇÃO: LOGO DA EMPRESA
                     ============================================ */}
@@ -104,6 +142,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
                                             <div key={index} className="group">
                                                 <Link
                                                     href={route(item.href)}
+                                                    onClick={handleLinkClick}
                                                     className={`flex items-start px-3 py-[10px] gap-3 font-sans transition rounded-md hover:bg-white/10 ${
                                                         isActive ? 'bg-primary/20 font-semibold text-primary border-l-2 border-primary' : 'text-white'
                                                     }`}
@@ -157,7 +196,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
                 </aside>
 
                 {/* Conteúdo Principal com barra de rolagem personalizada */}
-                <main className="flex-1 ml-[260px] p-6 overflow-y-auto scroll-admin">{children}</main>
+                <main className="flex-1 md:ml-[260px] ml-0 p-4 md:p-6 overflow-y-auto scroll-admin pt-16 md:pt-6">{children}</main>
             </div>
         </ClasseFilterProvider>
     );

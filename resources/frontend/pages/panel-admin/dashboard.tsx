@@ -120,22 +120,22 @@ export default function Dashboard({
         <AdminLayout>
             <Container noPadding className="min-h-screen bg-gradient-to-br flex flex-col gap-5 px-6 py-4 mt-5">
                 {/* Header Section */}
-                <div className="p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
-                    <div className="flex items-center justify-between max-w-[2000px] mx-auto">
+                <div className="p-4 md:p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between max-w-[2000px] mx-auto gap-4">
                         <div className="flex flex-col">
                             <div className="flex items-center gap-2 group">
-                                <Icon icon="svg-spinners:blocks-scale" className="text-primary" width="24" height="24" />
-                                <h1 className="flex items-center gap-2 text-2xl font-bold text-secondary">
+                                <Icon icon="svg-spinners:blocks-scale" className="text-primary w-5 h-5 md:w-6 md:h-6" />
+                                <h1 className="flex items-center gap-2 text-xl md:text-2xl font-bold text-secondary">
                                     Dashboard de Produtores Rurais
                                 </h1>
                             </div>
                             <div className="flex items-center gap-2 mt-2">
-                                <p className="text-sm text-gray-500">Acompanhe as métricas em tempo real</p>
+                                <p className="text-xs md:text-sm text-gray-500">Acompanhe as métricas em tempo real</p>
                             </div>
                         </div>
-                        <Link href={route('admin.admin.dashboard.producer')}>
-                            <Button className="flex items-center gap-2">
-                                <Icon icon="mdi:account-plus" className="w-5 h-5" />
+                        <Link href={route('admin.admin.dashboard.producer')} className="w-full md:w-auto">
+                            <Button className="flex items-center gap-2 w-full md:w-auto justify-center text-sm md:text-base">
+                                <Icon icon="mdi:account-plus" className="w-4 h-4 md:w-5 md:h-5" />
                                 Gerenciar Produtores
                             </Button>
                         </Link>
@@ -143,33 +143,33 @@ export default function Dashboard({
                 </div>
 
                 {/* Cards de estatísticas */}
-                <div className="p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
-                    <div className="grid grid-cols-2 gap-6">
+                <div className="p-4 md:p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
+                    <div className="grid grid-cols-2 gap-4 md:gap-6">
                         {/* Total de Fazendas */}
-                        <div className="text-center p-6 rounded-xl bg-gradient-to-br from-purple-50/50 to-purple-100/30 border border-purple-200/30 hover:shadow-md transition-all duration-200">
-                            <div className="flex justify-center mb-4">
-                                <div className="p-4 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
-                                    <Icon icon="mdi:farm" className="w-7 h-7 text-white" />
+                        <div className="text-center p-4 md:p-6 rounded-xl bg-gradient-to-br from-purple-50/50 to-purple-100/30 border border-purple-200/30 hover:shadow-md transition-all duration-200">
+                            <div className="flex justify-center mb-3 md:mb-4">
+                                <div className="p-3 md:p-4 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+                                    <Icon icon="mdi:farm" className="w-5 h-5 md:w-7 md:h-7 text-white" />
                                 </div>
                             </div>
-                            <h3 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">
+                            <h3 className="text-xs md:text-sm font-semibold text-gray-600 mb-2 md:mb-3 uppercase tracking-wide">
                                 Total de Fazendas
                             </h3>
-                            <p className="text-3xl font-bold text-gray-900 mb-2">{totalFarms.toLocaleString('pt-BR')}</p>
+                            <p className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{totalFarms.toLocaleString('pt-BR')}</p>
                             <div className="w-12 h-1 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full mx-auto"></div>
                         </div>
 
                         {/* Total de Hectares */}
-                        <div className="text-center p-6 rounded-xl bg-gradient-to-br from-blue-50/50 to-blue-100/30 border border-blue-200/30 hover:shadow-md transition-all duration-200">
-                            <div className="flex justify-center mb-4">
-                                <div className="p-4 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
-                                    <Icon icon="mdi:ruler" className="w-7 h-7 text-white" />
+                        <div className="text-center p-4 md:p-6 rounded-xl bg-gradient-to-br from-blue-50/50 to-blue-100/30 border border-blue-200/30 hover:shadow-md transition-all duration-200">
+                            <div className="flex justify-center mb-3 md:mb-4">
+                                <div className="p-3 md:p-4 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
+                                    <Icon icon="mdi:ruler" className="w-5 h-5 md:w-7 md:h-7 text-white" />
                                 </div>
                             </div>
-                            <h3 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">
+                            <h3 className="text-xs md:text-sm font-semibold text-gray-600 mb-2 md:mb-3 uppercase tracking-wide">
                                 Total de Hectares
                             </h3>
-                            <p className="text-3xl font-bold text-gray-900 mb-2">
+                            <p className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                                 {totalHectares.toLocaleString('pt-BR', {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
@@ -181,25 +181,25 @@ export default function Dashboard({
                 </div>
 
                 {/* Gráficos */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
                     {/* Mapa do Brasil por Estado */}
-                    <div className="p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Por Estado</h2>
+                    <div className="p-4 md:p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
+                        <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Por Estado</h2>
                         <BrasilMap data={byState} />
                     </div>
 
                     {/* Gráfico por Cultura */}
-                    <div className="p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Por Cultura</h2>
-                        <div className="w-full h-[450px] flex items-center justify-center">
+                    <div className="p-4 md:p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
+                        <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Por Cultura</h2>
+                        <div className="w-full h-[300px] md:h-[450px] flex items-center justify-center">
                             <Doughnut data={cropChartData} options={chartOptions} />
                         </div>
                     </div>
 
                     {/* Gráfico por Uso do Solo */}
-                    <div className="p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Por Uso do Solo</h2>
-                        <div className="w-full h-[300px] flex items-center justify-center">
+                    <div className="p-4 md:p-8 bg-white/90 backdrop-blur-sm border border-slate-200/50 shadow-lg rounded-2xl">
+                        <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Por Uso do Solo</h2>
+                        <div className="w-full h-[250px] md:h-[300px] flex items-center justify-center">
                             <Doughnut data={soilUseChartData} options={chartOptions} />
                         </div>
                     </div>

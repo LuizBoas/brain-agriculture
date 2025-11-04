@@ -318,12 +318,12 @@ export default function DashboardFarm({
         <AdminLayout>
             <div className="min-h-screen p-6">
                 <Container>
-                    <div className="mb-8 flex justify-between items-center">
+                    <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold text-secondary mb-2">Fazendas</h1>
-                            <p className="text-secondary70">Visualize todas as fazendas cadastradas</p>
+                            <h1 className="text-2xl md:text-3xl font-bold text-secondary mb-2">Fazendas</h1>
+                            <p className="text-sm md:text-base text-secondary70">Visualize todas as fazendas cadastradas</p>
                         </div>
-                        <Button onClick={handleAddFarm} className="flex items-center gap-2">
+                        <Button onClick={handleAddFarm} className="flex items-center gap-2 w-full md:w-auto justify-center">
                             <Icon icon="mdi:plus" className="w-5 h-5" />
                             Adicionar Fazenda
                         </Button>
@@ -356,8 +356,8 @@ export default function DashboardFarm({
                                             index !== farms.data.length - 1 ? 'border-b border-gray-200' : ''
                                         }`}
                                     >
-                                        <td className="px-4 py-4 font-medium">{farm.name}</td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-2 md:px-4 py-2 md:py-4 font-medium">{farm.name}</td>
+                                        <td className="px-2 md:px-4 py-2 md:py-4">
                                             <div className="flex flex-col">
                                                 <span className="font-medium">{farm.producer.name}</span>
                                                 <span className="text-xs text-gray-500">
@@ -365,26 +365,26 @@ export default function DashboardFarm({
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-4">{farm.city} - {farm.state}</td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-2 md:px-4 py-2 md:py-4">{farm.city} - {farm.state}</td>
+                                        <td className="px-2 md:px-4 py-2 md:py-4">
                                             {farm.total_area.toLocaleString('pt-BR', {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 2,
                                             })}
                                         </td>
-                                        <td className="px-4 py-4 text-green-600">
+                                        <td className="px-2 md:px-4 py-2 md:py-4 text-green-600">
                                             {farm.arable_area.toLocaleString('pt-BR', {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 2,
                                             })}
                                         </td>
-                                        <td className="px-4 py-4 text-emerald-600">
+                                        <td className="px-2 md:px-4 py-2 md:py-4 text-emerald-600">
                                             {farm.vegetation_area.toLocaleString('pt-BR', {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 2,
                                             })}
                                         </td>
-                                        <td className="px-2 py-2 text-center">
+                                        <td className="px-1 md:px-2 py-1 md:py-2 text-center">
                                             <div className="flex flex-col items-center justify-center">
                                                 <Icon
                                                     icon="material-symbols:more-vert"

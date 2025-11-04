@@ -49,7 +49,7 @@ export default function CompleteTable({
                                 {headers.map((header, index) => (
                                     <th key={index} className={`font-medium text-left text-gray-700 text-normal`}>
                                         <div
-                                            className={`flex items-center justify-between pl-4 pr-2 py-4 ${index === 0 ? '' : 'border-l-[1px] border-gray-200'}`}
+                                            className={`flex items-center justify-between px-2 md:pl-4 md:pr-2 py-2 md:py-4 ${index === 0 ? '' : 'border-l-[1px] border-gray-200'}`}
                                         >
                                             <span className="text-nowrap mr-2">{header.title}</span>
 

@@ -187,27 +187,21 @@ export default function DashboardProducer({
         }
     };
 
-    const states = [
-        'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
-        'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
-        'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-    ];
-
     return (
         <AdminLayout>
-            <div className="min-h-screen p-6">
+            <div className="min-h-screen p-0 md:p-6">
                 <Container>
-                    <div className="mb-8 flex items-center justify-between">
+                    <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold text-secondary mb-2">Produtores Rurais</h1>
-                            <p className="text-secondary70">Gerencie o cadastro de produtores e suas propriedades</p>
+                            <h1 className="text-2xl md:text-3xl font-bold text-secondary mb-2">Produtores Rurais</h1>
+                            <p className="text-sm md:text-base text-secondary70">Gerencie o cadastro de produtores e suas propriedades</p>
                         </div>
                         <Button
                             onClick={() => {
                                 reset();
                                 setIsAddModalOpen(true);
                             }}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 w-full md:w-auto justify-center"
                         >
                             <Icon icon="mdi:account-plus" className="w-5 h-5" />
                             Adicionar Produtor
@@ -241,13 +235,13 @@ export default function DashboardProducer({
                                             index !== producers.data.length - 1 ? 'border-b border-gray-200' : ''
                                         }`}
                                     >
-                                        <td className="px-4 py-4">
+                                        <td className="px-2 md:px-4 py-2 md:py-4">
                                             {formatDocument(producer.document, producer.document_type)}
                                         </td>
-                                        <td className="px-4 py-4">{producer.document_type}</td>
-                                        <td className="px-4 py-4 font-medium">{producer.name}</td>
-                                        <td className="px-4 py-4">{producer.farms_count || 0}</td>
-                                        <td className="px-2 py-2 text-center">
+                                        <td className="px-2 md:px-4 py-2 md:py-4">{producer.document_type}</td>
+                                        <td className="px-2 md:px-4 py-2 md:py-4 font-medium">{producer.name}</td>
+                                        <td className="px-2 md:px-4 py-2 md:py-4">{producer.farms_count || 0}</td>
+                                        <td className="px-1 md:px-2 py-1 md:py-2 text-center">
                                             <div className="flex flex-col items-center justify-center">
                                                 <Icon
                                                     icon="material-symbols:more-vert"

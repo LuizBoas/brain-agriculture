@@ -18,7 +18,18 @@ const GEO_URL = 'https://raw.githubusercontent.com/codeforamerica/click_that_hoo
 export const BrasilMap: React.FC<BrasilMapProps> = ({ data, title = '' }) => {
     const [hoveredState, setHoveredState] = useState<string | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+    const [isMobile, setIsMobile] = useState(false);
     const mapContainerRef = React.useRef<HTMLDivElement>(null);
+
+    // Detectar se é mobile
+    React.useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Criar mapa de dados por código de estado
     const stateDataMap = useMemo(() => {
@@ -74,14 +85,14 @@ export const BrasilMap: React.FC<BrasilMapProps> = ({ data, title = '' }) => {
             )}
             <div 
                 ref={mapContainerRef}
-                className="relative w-full h-[450px] flex items-center justify-center"
+                className="relative w-full h-[300px] md:h-[450px] flex items-center justify-center"
                 onMouseMove={handleMouseMove}
             >
                 <ComposableMap
                     projection="geoMercator"
                     projectionConfig={{
                         center: [-54, -15],
-                        scale: 800
+                        scale: isMobile ? 600 : 800
                     }}
                     style={{ width: '100%', height: '100%' }}
                 >
