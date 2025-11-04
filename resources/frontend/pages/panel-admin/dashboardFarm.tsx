@@ -73,6 +73,7 @@ export default function DashboardFarm({
     const [menuOpen, setMenuOpen] = useState<number | null>(null);
     const [editHarvests, setEditHarvests] = useState<Array<{ year: string; crops: string[] }>>([]);
     const [addHarvests, setAddHarvests] = useState<Array<{ year: string; crops: string[] }>>([]);
+    const [producerIdError, setProducerIdError] = useState<string | undefined>(undefined);
 
     // Form para adicionar fazenda
     const { data: addFarmData, setData: setAddFarmData, post: postFarm, reset: resetAddFarm, errors: addFarmErrors, processing: processingAddFarm } = useForm({
@@ -96,6 +97,14 @@ export default function DashboardFarm({
         vegetation_area: '',
         harvests: [] as Array<{ year: string; crops: string[] }>
     });
+
+    // Helper para pegar a primeira mensagem de erro (caso seja array)
+    const getErrorMessage = (errors: any, field: string): string | undefined => {
+        const error = errors[field];
+        if (!error) return undefined;
+        if (Array.isArray(error)) return error[0];
+        return error as string;
+    };
 
     const handlePageChange = (page: number) => {
         router.get(route('admin.admin.dashboard.farm'), {
@@ -172,7 +181,7 @@ export default function DashboardFarm({
         })).filter(h => h.year.trim() !== '' && h.crops.length > 0);
 
         // Usar router.put diretamente para garantir que os dados sejam enviados
-        router.put(route('admin.farm.edit', { producerId: selectedFarm.producer.id, farmId: selectedFarm.id }), {
+        router.put(route('admin.admin.farm.edit', { producerId: selectedFarm.producer.id, farmId: selectedFarm.id }), {
             ...editFarmData,
             harvests: harvestsData
         }, {
@@ -192,31 +201,39 @@ export default function DashboardFarm({
 
     const handleAddFarm = () => {
         setAddHarvests([]);
+        setProducerIdError(undefined);
         setIsAddFarmModalOpen(true);
     };
 
     const submitAddFarm = (e: React.FormEvent) => {
         e.preventDefault();
         
+        // Validar se o produtor foi selecionado antes de enviar
+        if (!addFarmData.producer_id || addFarmData.producer_id.trim() === '') {
+            setProducerIdError('Selecione um produtor');
+            return;
+        }
+        
+        // Limpar erro se o produtor foi selecionado
+        setProducerIdError(undefined);
+        
         const harvestsData = addHarvests.map(h => ({
             year: h.year,
             crops: h.crops.filter(c => c.trim() !== '').map(c => c.trim())
         })).filter(h => h.year.trim() !== '' && h.crops.length > 0);
 
-        // Usar router.post diretamente para garantir que os dados sejam enviados
-        router.post(route('admin.farm.create', { producerId: addFarmData.producer_id }), {
-            ...addFarmData,
-            harvests: harvestsData
-        }, {
-            preserveScroll: false,
+        // Atualizar os dados do formulário com as safras antes de enviar
+        setAddFarmData('harvests', harvestsData);
+
+        // Usar o método post do useForm para que os erros sejam automaticamente capturados
+        postFarm(route('admin.admin.farm.create', { producerId: addFarmData.producer_id }), {
+            preserveScroll: true,
             onSuccess: () => {
                 resetAddFarm();
                 setAddHarvests([]);
                 setIsAddFarmModalOpen(false);
+                setProducerIdError(undefined);
                 // O backend já redireciona para a tela de detalhes do produtor
-            },
-            onError: (errors) => {
-                console.error('Erro ao criar fazenda:', errors);
             }
         });
     };
@@ -396,39 +413,41 @@ export default function DashboardFarm({
                         onClose={() => {
                             resetAddFarm();
                             setAddHarvests([]);
+                            setProducerIdError(undefined);
                             setIsAddFarmModalOpen(false);
                         }}
                         title="Adicionar Fazenda"
                     >
                         <Form validationErrors={addFarmErrors} onSubmit={submitAddFarm}>
                             <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Produtor *
-                                    </label>
-                                    <select
-                                        value={addFarmData.producer_id}
-                                        onChange={(e) => setAddFarmData('producer_id', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                                        required
-                                    >
-                                        <option value="">Selecione um produtor...</option>
-                                        {producers.map((producer: Producer) => (
-                                            <option key={producer.id} value={producer.id}>
-                                                {producer.name} - {formatDocument(producer.document, producer.document_type)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {addFarmErrors.producer_id && (
-                                        <p className="mt-1 text-sm text-red-500">{addFarmErrors.producer_id}</p>
-                                    )}
-                                </div>
+                                <Select
+                                    label="Produtor *"
+                                    value={addFarmData.producer_id}
+                                    onChange={(value) => {
+                                        setAddFarmData('producer_id', value);
+                                        // Limpar erro quando o usuário selecionar um produtor
+                                        if (value) {
+                                            setProducerIdError(undefined);
+                                        }
+                                    }}
+                                    options={[
+                                        { value: '', label: 'Selecione um produtor...' },
+                                        ...producers.map((producer: Producer) => ({
+                                            value: producer.id,
+                                            label: `${producer.name} - ${formatDocument(producer.document, producer.document_type)}`
+                                        }))
+                                    ]}
+                                    placeholder="Buscar produtor..."
+                                    searchable={true}
+                                    variant="light"
+                                    errorMessage={producerIdError || getErrorMessage(addFarmErrors, 'producer_id')}
+                                />
 
                                 <InputPopUpAdmin
                                     label="Nome da Fazenda"
                                     value={addFarmData.name}
                                     onChange={(e) => setAddFarmData('name', e.target.value)}
-                                    errorMessage={addFarmErrors.name}
+                                    errorMessage={getErrorMessage(addFarmErrors, 'name')}
                                     placeholder="Nome da propriedade"
                                 />
 
@@ -440,7 +459,7 @@ export default function DashboardFarm({
                                         // Limpar cidade quando o estado mudar
                                         setAddFarmData('city', '');
                                     }}
-                                    errorMessage={addFarmErrors.state}
+                                    errorMessage={getErrorMessage(addFarmErrors, 'state')}
                                     options={getStatesForSelect()}
                                     hideDefaultWhenOpen={true}
                                     variant="light"
@@ -451,7 +470,7 @@ export default function DashboardFarm({
                                     state={addFarmData.state}
                                     value={addFarmData.city}
                                     onChange={(value) => setAddFarmData('city', value)}
-                                    errorMessage={addFarmErrors.city}
+                                    errorMessage={getErrorMessage(addFarmErrors, 'city')}
                                 />
 
                                 <InputPopUpAdmin
@@ -460,7 +479,7 @@ export default function DashboardFarm({
                                     step="0.01"
                                     value={addFarmData.total_area}
                                     onChange={(e) => setAddFarmData('total_area', e.target.value)}
-                                    errorMessage={addFarmErrors.total_area}
+                                    errorMessage={getErrorMessage(addFarmErrors, 'total_area')}
                                     placeholder="0.00"
                                 />
 
@@ -470,7 +489,7 @@ export default function DashboardFarm({
                                     step="0.01"
                                     value={addFarmData.arable_area}
                                     onChange={(e) => setAddFarmData('arable_area', e.target.value)}
-                                    errorMessage={addFarmErrors.arable_area}
+                                    errorMessage={getErrorMessage(addFarmErrors, 'arable_area')}
                                     placeholder="0.00"
                                 />
 
@@ -480,7 +499,7 @@ export default function DashboardFarm({
                                     step="0.01"
                                     value={addFarmData.vegetation_area}
                                     onChange={(e) => setAddFarmData('vegetation_area', e.target.value)}
-                                    errorMessage={addFarmErrors.vegetation_area}
+                                    errorMessage={getErrorMessage(addFarmErrors, 'vegetation_area')}
                                     placeholder="0.00"
                                 />
 
@@ -595,7 +614,7 @@ export default function DashboardFarm({
                                     label="Nome da Fazenda"
                                     value={editFarmData.name}
                                     onChange={(e) => setEditFarmData('name', e.target.value)}
-                                    errorMessage={editFarmErrors.name}
+                                    errorMessage={getErrorMessage(editFarmErrors, 'name')}
                                     placeholder="Nome da propriedade"
                                 />
 
@@ -607,7 +626,7 @@ export default function DashboardFarm({
                                         // Limpar cidade quando o estado mudar
                                         setEditFarmData('city', '');
                                     }}
-                                    errorMessage={editFarmErrors.state}
+                                    errorMessage={getErrorMessage(editFarmErrors, 'state')}
                                     options={getStatesForSelect()}
                                     hideDefaultWhenOpen={true}
                                     variant="light"
@@ -618,7 +637,7 @@ export default function DashboardFarm({
                                     state={editFarmData.state}
                                     value={editFarmData.city}
                                     onChange={(value) => setEditFarmData('city', value)}
-                                    errorMessage={editFarmErrors.city}
+                                    errorMessage={getErrorMessage(editFarmErrors, 'city')}
                                 />
 
                                 <InputPopUpAdmin
@@ -627,7 +646,7 @@ export default function DashboardFarm({
                                     step="0.01"
                                     value={editFarmData.total_area}
                                     onChange={(e) => setEditFarmData('total_area', e.target.value)}
-                                    errorMessage={editFarmErrors.total_area}
+                                    errorMessage={getErrorMessage(editFarmErrors, 'total_area')}
                                     placeholder="0.00"
                                 />
 
@@ -637,7 +656,7 @@ export default function DashboardFarm({
                                     step="0.01"
                                     value={editFarmData.arable_area}
                                     onChange={(e) => setEditFarmData('arable_area', e.target.value)}
-                                    errorMessage={editFarmErrors.arable_area}
+                                    errorMessage={getErrorMessage(editFarmErrors, 'arable_area')}
                                     placeholder="0.00"
                                 />
 
@@ -647,7 +666,7 @@ export default function DashboardFarm({
                                     step="0.01"
                                     value={editFarmData.vegetation_area}
                                     onChange={(e) => setEditFarmData('vegetation_area', e.target.value)}
-                                    errorMessage={editFarmErrors.vegetation_area}
+                                    errorMessage={getErrorMessage(editFarmErrors, 'vegetation_area')}
                                     placeholder="0.00"
                                 />
 

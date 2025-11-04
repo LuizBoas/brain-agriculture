@@ -29,6 +29,37 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $toasts = [];
+        
+        // Converter mensagens flash do Laravel em toasts
+        if ($request->session()->has('success')) {
+            $toasts[] = [
+                'type' => 'success',
+                'message' => $request->session()->get('success'),
+            ];
+        }
+        
+        if ($request->session()->has('error')) {
+            $toasts[] = [
+                'type' => 'error',
+                'message' => $request->session()->get('error'),
+            ];
+        }
+        
+        if ($request->session()->has('warning')) {
+            $toasts[] = [
+                'type' => 'warning',
+                'message' => $request->session()->get('warning'),
+            ];
+        }
+        
+        if ($request->session()->has('info')) {
+            $toasts[] = [
+                'type' => 'info',
+                'message' => $request->session()->get('info'),
+            ];
+        }
+        
         return [
             ...parent::share($request),
             'auth' => [
@@ -49,7 +80,7 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
                 'query' => $request->query(),
             ],
-            'toasts' => [],
+            'toasts' => $toasts,
         ];
     }
 }

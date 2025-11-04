@@ -75,7 +75,7 @@ export default function DashboardProducerDetail({
 
     const submitAddFarm = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('admin.farm.create', { producerId: producer.id }), {
+        post(route('admin.admin.farm.create', { producerId: producer.id }), {
             preserveScroll: true,
             onSuccess: () => {
                 reset();

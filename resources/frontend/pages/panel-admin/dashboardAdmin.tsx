@@ -71,7 +71,7 @@ export default function DashboardAdmin({
         setSelectedAdmin(admin);
         setDeleteMessage(`Tem certeza que deseja excluir o administrador "${admin.name}"?`);
         setOnDeleteAction(() => () => {
-            deleteAdmin(route('admin.delete', { id: admin.id }), {
+            deleteAdmin(route('admin.admin.delete', { id: admin.id }), {
                 onSuccess: () => {
                     setIsDeleteModalOpen(false);
                 }
@@ -96,7 +96,7 @@ export default function DashboardAdmin({
     const submitAddAdmin = (e: React.FormEvent) => {
         e.preventDefault();
         
-        post(route('admin.create'), {
+        post(route('admin.admin.create'), {
             preserveScroll: true,
             onSuccess: () => {
                 reset();
@@ -112,7 +112,7 @@ export default function DashboardAdmin({
         e.preventDefault();
         if (!selectedAdmin) return;
 
-        putEdit(route('admin.edit', { id: selectedAdmin.id }), {
+        putEdit(route('admin.admin.edit', { id: selectedAdmin.id }), {
             preserveScroll: true,
             onSuccess: () => {
                 resetEditForm();

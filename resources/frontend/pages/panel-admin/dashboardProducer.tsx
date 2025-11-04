@@ -60,7 +60,7 @@ export default function DashboardProducer({
         setSelectedProducer(producer);
         setDeleteMessage(`Tem certeza que deseja excluir o produtor "${producer.name}"? Todas as fazendas associadas também serão excluídas.`);
         setOnDeleteAction(() => () => {
-            deleteProducer(route('admin.producer.delete', { id: producer.id }), {
+            deleteProducer(route('admin.admin.producer.delete', { id: producer.id }), {
                 onSuccess: () => {
                     setIsDeleteModalOpen(false);
                 }
@@ -82,18 +82,47 @@ export default function DashboardProducer({
         setIsEditModalOpen(true);
     };
 
+    const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Remove todos os caracteres não numéricos
+        const numericValue = e.target.value.replace(/\D/g, '');
+        
+        // Define o limite baseado no tipo de documento
+        const maxLength = data.document_type === 'CPF' ? 11 : 14;
+        
+        // Limita o tamanho
+        const limitedValue = numericValue.slice(0, maxLength);
+        
+        setData('document', limitedValue);
+    };
+
+    // Helper para pegar a primeira mensagem de erro (caso seja array)
+    const getErrorMessage = (field: keyof typeof errors): string | undefined => {
+        const error = errors[field];
+        if (!error) return undefined;
+        if (Array.isArray(error)) return error[0];
+        return error as string;
+    };
+
+    // Limita o documento quando o tipo de documento mudar
+    useEffect(() => {
+        if (data.document) {
+            const numericValue = data.document.replace(/\D/g, '');
+            const maxLength = data.document_type === 'CPF' ? 11 : 14;
+            const limitedValue = numericValue.slice(0, maxLength);
+            if (limitedValue !== data.document) {
+                setData('document', limitedValue);
+            }
+        }
+    }, [data.document_type]);
+
     const submitAddProducer = (e: React.FormEvent) => {
         e.preventDefault();
         
-        post(route('admin.producer.create'), {
+        post(route('admin.admin.producer.create'), {
             preserveScroll: true,
-            preserveState: false,
             onSuccess: () => {
                 reset();
                 setIsAddModalOpen(false);
-            },
-            onError: (errors) => {
-                console.error('Erro ao criar produtor:', errors);
             }
         });
     };
@@ -102,15 +131,12 @@ export default function DashboardProducer({
         e.preventDefault();
         if (!selectedProducer) return;
 
-        put(route('admin.producer.edit', { id: selectedProducer.id }), {
+        put(route('admin.admin.producer.edit', { id: selectedProducer.id }), {
             preserveScroll: true,
             onSuccess: () => {
                 reset();
                 setIsEditModalOpen(false);
                 setSelectedProducer(null);
-            },
-            onError: (errors) => {
-                console.error('Erro ao editar produtor:', errors);
             }
         });
     };
@@ -269,24 +295,25 @@ export default function DashboardProducer({
                                         <option value="CPF">CPF</option>
                                         <option value="CNPJ">CNPJ</option>
                                     </select>
-                                    {errors.document_type && (
-                                        <p className="mt-1 text-sm text-red-500">{errors.document_type}</p>
+                                    {getErrorMessage('document_type') && (
+                                        <p className="mt-1 text-sm text-red-500">{getErrorMessage('document_type')}</p>
                                     )}
                                 </div>
 
                                 <InputPopUpAdmin
                                     label="Documento"
                                     value={data.document}
-                                    onChange={(e) => setData('document', e.target.value)}
-                                    errorMessage={errors.document}
+                                    onChange={handleDocumentChange}
+                                    errorMessage={getErrorMessage('document')}
                                     placeholder={data.document_type === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'}
+                                    maxLength={data.document_type === 'CPF' ? 11 : 14}
                                 />
 
                                 <InputPopUpAdmin
                                     label="Nome do Produtor"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
-                                    errorMessage={errors.name}
+                                    errorMessage={getErrorMessage('name')}
                                     placeholder="Nome completo"
                                 />
 
@@ -334,24 +361,25 @@ export default function DashboardProducer({
                                         <option value="CPF">CPF</option>
                                         <option value="CNPJ">CNPJ</option>
                                     </select>
-                                    {errors.document_type && (
-                                        <p className="mt-1 text-sm text-red-500">{errors.document_type}</p>
+                                    {getErrorMessage('document_type') && (
+                                        <p className="mt-1 text-sm text-red-500">{getErrorMessage('document_type')}</p>
                                     )}
                                 </div>
 
                                 <InputPopUpAdmin
                                     label="Documento"
                                     value={data.document}
-                                    onChange={(e) => setData('document', e.target.value)}
-                                    errorMessage={errors.document}
+                                    onChange={handleDocumentChange}
+                                    errorMessage={getErrorMessage('document')}
                                     placeholder={data.document_type === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'}
+                                    maxLength={data.document_type === 'CPF' ? 11 : 14}
                                 />
 
                                 <InputPopUpAdmin
                                     label="Nome do Produtor"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
-                                    errorMessage={errors.name}
+                                    errorMessage={getErrorMessage('name')}
                                     placeholder="Nome completo"
                                 />
 
