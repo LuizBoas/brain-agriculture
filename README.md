@@ -44,15 +44,7 @@ O sistema está disponível online para demonstração:
 ```
 Email: admin@brain-agriculture.com
 Senha: password
-```
-
-### ⚠️ Importante
-
-- Esta é uma versão de demonstração/teste
-- Os dados podem ser resetados periodicamente
-- Use apenas para avaliação do sistema
-
----
+``
 
 ## 🛠 Tecnologias Utilizadas
 
